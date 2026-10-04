@@ -1,0 +1,12 @@
+= Extension: triggers
+:ext-version: 0.1.0
+:arc42-version: 9.0
+
+Attaches to:: §9 Architecture Decisions (09_architecture_decisions.adoc), §11 Risks and Technical Debts
+Status:: Draft
+
+== Motivation
+== Fields
+== Rules
+== Example
+== Limitations
