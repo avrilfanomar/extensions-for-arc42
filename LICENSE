@@ -1,3 +1,65 @@
+Extensions for arc42
+Copyright (c) 2026 Andrii Andriichuk
+
+This work is licensed under the Creative Commons Attribution-ShareAlike
+4.0 International License (CC BY-SA 4.0). The full legal code follows
+below and is also available at:
+https://creativecommons.org/licenses/by-sa/4.0/legalcode
+
+-----------------------------------------------------------------------
+Attribution
+-----------------------------------------------------------------------
+
+This work builds upon arc42, the template for architecture
+communication and documentation:
+
+  * Creators:  Dr. Gernot Starke and Dr. Peter Hruschka
+  * Source:    https://arc42.org
+  * License:   CC BY-SA 4.0 (https://arc42.org/license)
+
+Changes: this repository adds new, optional material (extensions) that
+attaches to existing arc42 sections. It does not rename, remove or
+modify the original arc42 template text. Where arc42 material is
+quoted or referenced, it is used under the terms of CC BY-SA 4.0.
+
+This is an independent project. It is not affiliated with, sponsored
+by, or endorsed by arc42 or its creators.
+
+-----------------------------------------------------------------------
+What this means for you
+-----------------------------------------------------------------------
+
+You are free to:
+
+  * Share: copy and redistribute this material in any medium or format.
+  * Adapt: remix, transform, and build upon this material for any
+    purpose, even commercially.
+
+Under the following terms:
+
+  * Attribution: give appropriate credit to both this project and
+    arc42 (Gernot Starke and Peter Hruschka), provide a link to the
+    license, and indicate if changes were made. You may not suggest
+    that the licensors endorse you or your use.
+  * ShareAlike: if you remix, transform, or build upon this material
+    and share the result outside your own organization, you must
+    distribute your contributions under CC BY-SA 4.0 (or a later or
+    compatible version).
+
+Using and adapting these extensions inside your own organization,
+without publishing anything, does not trigger the ShareAlike
+condition.
+
+Your own content is yours: architecture documentation you write using
+arc42 and these extensions may be used and published under any terms
+you choose. Filling in the template does not place your own content
+under CC BY-SA.
+
+This summary is for convenience only and does not replace the legal
+code below.
+
+=======================================================================
+
 Attribution-ShareAlike 4.0 International
 
 =======================================================================
