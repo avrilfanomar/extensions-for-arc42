@@ -139,6 +139,20 @@ def facts(pairs) -> str:
     return f'<dl class="facts">{rows}</dl>' if rows else ""
 
 
+def breadcrumbs(ctx: Context, items: list) -> str:
+    """Generate breadcrumb navigation. Items are tuples of (label, url) or just label for current page."""
+    if not items:
+        return ""
+    crumbs = []
+    for item in items:
+        if isinstance(item, tuple):
+            label, url = item
+            crumbs.append(f'<a href="{esc(url)}">{esc(label)}</a>')
+        else:
+            crumbs.append(f'<span>{esc(item)}</span>')
+    return f'<nav class="breadcrumbs" aria-label="Breadcrumb">{' <span class="sep">›</span> '.join(crumbs)}</nav>'
+
+
 # --- layout -----------------------------------------------------------------
 
 
@@ -163,9 +177,10 @@ def _findings_notice(ctx: Context) -> str:
 
 
 def layout(ctx: Context, title: str, body: str, current: str = "", here: str = "/",
-           keep: Optional[dict] = None) -> str:
+           keep: Optional[dict] = None, crumbs: Optional[list] = None) -> str:
     """The page frame: document, navigation, evaluation date and notices. `here` is the page's own path
-    and `keep` the query parameters, besides the date, that the date control must carry along."""
+    and `keep` the query parameters, besides the date, that the date control must carry along.
+    `crumbs` is a list for breadcrumb navigation (tuples of (label, url) or just label for current)."""
     a = ctx.analysis
     doc_title = (a.doc.title if a and a.doc.title else "") or ctx.path.name
     nav = "".join(
@@ -178,6 +193,19 @@ def layout(ctx: Context, title: str, body: str, current: str = "", here: str = "
         reset = f'<a href="{esc(here + ("?" + urlencode(keep) if keep else ""))}">Reset</a>'
     value = a.date.isoformat() if a else (ctx.date_param or "")
     notices = "".join(f'<div class="notice error">{esc(n)}</div>' for n in ctx.notices)
+    breadcrumb_html = breadcrumbs(ctx, crumbs) if crumbs else ""
+
+    # Page footer with metadata
+    footer_parts = []
+    if a:
+        elem_count = len(a.graph.elements)
+        link_count = len(a.graph.links)
+        revisit_count = len([r for r in a.doc.revisits if r.outcome is None])
+        footer_parts.append(f"Analyzed {elem_count} element{'s' if elem_count != 1 else ''}, "
+                          f"{link_count} link{'s' if link_count != 1 else ''}, "
+                          f"{revisit_count} open revisit{'s' if revisit_count != 1 else ''}")
+    footer = f'<div class="page-footer">{" · ".join(footer_parts)}<button type="button" class="share-btn">🔗 Share this view</button></div>' if footer_parts else ""
+
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -196,10 +224,11 @@ def layout(ctx: Context, title: str, body: str, current: str = "", here: str = "
 <input type="date" id="date" name="date" value="{esc(value)}" required>{hidden}
 <button type="submit">Apply</button>{reset}
 <span id="live" class="live" hidden>Live</span>
+<span class="keyboard-hint"><kbd>?</kbd> for shortcuts</span>
 </form>
 </div></header>
 <main>
-{notices}{_findings_notice(ctx)}{body}
+{breadcrumb_html}{notices}{_findings_notice(ctx)}{body}{footer}
 </main>
 </body>
 </html>
@@ -270,8 +299,10 @@ def _sections(ctx: Context, board: Dashboard, prefix: str) -> str:
         items = getattr(board, state)
         if items:
             cards = "".join(item_card(ctx, item, f"{prefix}{state}-{n}") for n, item in enumerate(items))
-            out.append(f'<section id="{state}"><h2>{esc(title)} <span class="muted">({len(items)})</span></h2>'
-                       f'<p class="lead muted">{esc(lead)}</p>{cards}</section>')
+            section_id = f"{prefix}{state}"
+            out.append(f'<details class="collapsible" data-section-id="{section_id}" id="{state}" open>'
+                       f'<summary><h2>{esc(title)} <span class="muted">({len(items)})</span></h2></summary>'
+                       f'<p class="lead muted">{esc(lead)}</p>{cards}</details>')
     return "".join(out)
 
 
@@ -291,11 +322,16 @@ def dashboard_page(ctx: Context, board: Dashboard, role: Optional[str]) -> str:
                  f'<button type="submit">Apply</button></form>')
     if board.empty:
         who = f" for {ref(ctx, role, title=False)}" if role else ""
-        body = f'<div class="empty">Nothing needs action{who} at {a.date.isoformat()}.</div>'
+        body = f'<div class="empty empty-success"><strong>All caught up!</strong>Nothing needs action{who} at {a.date.isoformat()}.</div>'
     else:
         body = _sections(ctx, board, "")
+
+    crumb_items = [("Dashboard", href(ctx, "/"))]
+    if role:
+        crumb_items.append(f"Responsible: {role}")
+
     return layout(ctx, "Dashboard", f'<div class="counts">{tiles}</div>{role_form}{body}', "dashboard", "/",
-                  keep={"role": role})
+                  keep={"role": role}, crumbs=crumb_items)
 
 
 # --- element catalogue ------------------------------------------------------
@@ -323,7 +359,8 @@ def catalogue_page(ctx: Context, groups: list, by: str) -> str:
         f"<strong>{label}</strong>" if by == key else f'<a href="{esc(href(ctx, "/elements", by=key))}">{label}</a>'
         for key, label in (("section", "Section"), ("kind", "Kind")))
     bar = (f'<div class="filter-bar"><input type="search" id="filter" placeholder="Filter by ID, title or owner" '
-           f'aria-label="Filter elements" hidden><span class="muted">Group by {switch}</span></div>')
+           f'aria-label="Filter elements" hidden><span class="muted">Group by {switch}</span>'
+           f'<span id="result-count"></span></div>')
     out = []
     for group, entries in groups:
         rows = "".join(
@@ -334,17 +371,28 @@ def catalogue_page(ctx: Context, groups: list, by: str) -> str:
             f"<td>{_state_badges(ctx, e.state)}</td></tr>"
             for e in entries)
         out.append(f'<section data-filter-group><h2>{esc(group)} <span class="muted">({len(entries)})</span></h2>'
-                   f'<div class="table-wrap"><table><thead><tr><th scope="col">ID</th><th scope="col">Title</th>'
-                   f'<th scope="col">Kind</th><th scope="col">Owner</th><th scope="col">Links out</th>'
-                   f'<th scope="col">Links in</th><th scope="col">Revisits</th></tr></thead>'
+                   f'<div class="table-wrap"><table data-sortable><thead><tr>'
+                   f'<th scope="col" data-sort="text">ID</th>'
+                   f'<th scope="col" data-sort="text">Title</th>'
+                   f'<th scope="col" data-sort="text">Kind</th>'
+                   f'<th scope="col" data-sort="text">Owner</th>'
+                   f'<th scope="col" data-sort="num">Links out</th>'
+                   f'<th scope="col" data-sort="num">Links in</th>'
+                   f'<th scope="col">Revisits</th></tr></thead>'
                    f"<tbody>{rows}</tbody></table></div></section>")
-    body = "".join(out) or '<div class="empty">The document has no elements.</div>'
-    return layout(ctx, "Elements", bar + body, "elements", "/elements", keep={"by": by if by != "section" else None})
+    body = "".join(out) or '<div class="empty"><strong>No elements found</strong>The document has no elements.</div>'
+
+    crumb_items = [("Dashboard", href(ctx, "/")), "Elements"]
+    if by != "section":
+        crumb_items[-1] = (f"Elements (by {by})", href(ctx, "/elements", by=by))
+
+    return layout(ctx, "Elements", bar + body, "elements", "/elements", keep={"by": by if by != "section" else None},
+                  crumbs=crumb_items)
 
 
-def _link_list(ctx: Context, grouped: dict, arrow: str) -> str:
+def _link_list(ctx: Context, grouped: dict, arrow: str, empty_msg: str) -> str:
     if not grouped:
-        return '<p class="muted">None.</p>'
+        return f'<p class="muted">{esc(empty_msg)}</p>'
     items = "".join(f'<li><div class="type">{arrow}{esc(link_type)}</div>'
                     f'{"".join(f"<div>{ref(ctx, target)}</div>" for target in targets)}</li>'
                     for link_type, targets in grouped.items())
@@ -372,7 +420,7 @@ def _revisit_line(ctx: Context, revisit) -> str:
 
 def _timeline(ctx: Context, detail: Detail) -> str:
     if not detail.timeline:
-        return '<p class="muted">No event has reached it.</p>'
+        return '<p class="muted">No events recorded for this element.</p>'
     out = []
     for entry in detail.timeline:
         event = entry.event
@@ -422,30 +470,59 @@ def _subscriber(ctx: Context, detail: Detail) -> str:
     table = (f'<div class="table-wrap"><table><thead><tr><th scope="col">Event type</th><th scope="col">Parameter'
              f'</th><th scope="col">Subject filter</th><th scope="col">Responsible</th><th scope="col">Time allowed'
              f'</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>') if rows else \
-        '<p class="muted">No subscriptions; it only has a baseline.</p>'
-    return (f'<section><h2>Revisits</h2>{summary}<h3>Subscriptions</h3>{table}'
-            f"<h3>History</h3>{_timeline(ctx, detail)}</section>")
+        '<p class="muted">This element has no event subscriptions.</p>'
+
+    subscriptions_section = f'<details class="collapsible" data-section-id="subscriptions" open><summary><h3>Subscriptions</h3></summary>{table}</details>'
+
+    # Timeline statistics
+    timeline_stats = ""
+    if detail.timeline:
+        total_events = len(detail.timeline)
+        open_revisits = sum(1 for entry in detail.timeline for r in entry.revisits if not r.outcome)
+        closed_revisits = sum(1 for entry in detail.timeline for r in entry.revisits if r.outcome)
+        timeline_stats = (f'<dl class="facts" style="margin-top: 12px;">'
+                         f'<dt>Total events</dt><dd>{total_events}</dd>'
+                         f'<dt>Open revisits</dt><dd>{open_revisits}</dd>'
+                         f'<dt>Closed revisits</dt><dd>{closed_revisits}</dd>'
+                         f'</dl>')
+
+    timeline_section = f'<details class="collapsible" data-section-id="timeline" id="timeline" open><summary><h3>History</h3></summary>{timeline_stats}{_timeline(ctx, detail)}</details>'
+
+    return f'<section><h2>Revisits</h2>{summary}{subscriptions_section}{timeline_section}</section>'
 
 
 def element_page(ctx: Context, detail: Detail) -> str:
     e = detail.element
-    head = (f'<div class="element-head">{badge("inactive", e.kind)} <code>{esc(e.id)}</code>'
+    head = (f'<div class="element-head"><span class="kind-badge" data-icon="📄">{esc(e.kind)}</span> '
+            f'<code>{esc(e.id)}</code>'
             f"<h2>{text(ctx, e.title or e.id)}</h2>"
             f'<div class="muted">{esc(e.section or "")} {source(ctx, e.location)}</div></div>')
     topics = (f"<p>Topics: {', '.join(f'<code>{esc(t)}</code>' for t in detail.topics)}</p>"
               if detail.topics else "")
-    links = (f'<div class="grid2"><div class="panel"><h3>Links</h3>{_link_list(ctx, detail.outgoing, "")}</div>'
-             f'<div class="panel"><h3>Referenced by</h3>{_link_list(ctx, detail.incoming, "← ")}{topics}</div></div>')
+
+    outgoing_links = _link_list(ctx, detail.outgoing, "", "This element has no outgoing links.")
+    incoming_links = _link_list(ctx, detail.incoming, "← ", "This element is not referenced by other elements.")
+
+    links_panel = f'<details class="collapsible" data-section-id="links" open><summary><h3>Links</h3></summary>{outgoing_links}</details>'
+    refs_panel = f'<details class="collapsible" data-section-id="references" open><summary><h3>Referenced by</h3></summary>{incoming_links}{topics}</details>'
+    links = f'<div class="grid2"><div class="panel">{links_panel}</div><div class="panel">{refs_panel}</div></div>'
+
     body = head + links
     if detail.state:
         body += _subscriber(ctx, detail)
     if detail.assigned is not None:
         role_link = esc(href(ctx, "/", role=e.id))
         assigned = (_sections(ctx, detail.assigned, "assigned-") if not detail.assigned.empty
-                    else '<div class="empty">Nothing assigned to this role needs action.</div>')
-        body += (f'<section><h2>Assigned to this role</h2><p class="lead"><a href="{role_link}">Open the dashboard '
-                 f"filtered to {esc(e.id)}</a></p>{assigned}</section>")
-    return layout(ctx, e.id, body, "elements", "/elements/" + quote(e.id, safe=""))
+                    else '<div class="empty"><strong>All clear</strong>Nothing assigned to this role needs action.</div>')
+        assigned_section = (f'<details class="collapsible" data-section-id="assigned" id="assigned" open>'
+                           f'<summary><h2>Assigned to this role</h2></summary>'
+                           f'<p class="lead"><a href="{role_link}">Open the dashboard filtered to {esc(e.id)}</a></p>'
+                           f'{assigned}</details>')
+        body += f'<section>{assigned_section}</section>'
+
+    crumb_items = [("Dashboard", href(ctx, "/")), ("Elements", href(ctx, "/elements")), e.id]
+
+    return layout(ctx, e.id, body, "elements", "/elements/" + quote(e.id, safe=""), crumbs=crumb_items)
 
 
 # --- errors -----------------------------------------------------------------
