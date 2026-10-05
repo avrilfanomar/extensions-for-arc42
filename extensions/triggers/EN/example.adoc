@@ -1,0 +1,464 @@
+= Architecture Documentation: Order Platform
+:toc: left
+:sectnums:
+
+This is a **demonstration document** for the `triggers` extension. It builds on the `links` example and adds event-driven revisits.
+
+[[section-introduction-and-goals]]
+== Introduction and Goals
+
+Extensions used: links v0.1.0, triggers v0.1.0
+
+=== Requirements Overview
+
+The platform processes customer orders, integrates with payment providers, and coordinates fulfillment.
+
+Key requirements:
+
+* [[rq-001]]**RQ-001**: Process 10,000 orders per hour during peak times
+* [[rq-002]]**RQ-002**: Support multiple payment methods (credit card, PayPal, wire transfer)
+* [[need-async-messaging]]**Async messaging**: Decouple order processing from fulfillment to handle load spikes
+
+[.links]
+|===
+|Source |owned-by
+
+|<<rq-001>> |<<sh-product-owner>>
+|<<rq-002>> |<<sh-product-owner>>
+|<<need-async-messaging>> |<<sh-architect>>
+|===
+
+=== Quality Goals
+
+* [[qg-001]]**Performance**: 95th percentile order processing latency < 500ms
+* [[qg-002]]**Reliability**: 99.9% uptime
+* [[qg-003]]**Operability**: Mean time to recovery < 15 minutes
+
+[.links]
+|===
+|Source |owned-by
+
+|<<qg-001>> |<<sh-product-owner>>
+|<<qg-002>> |<<sh-ops>>
+|<<qg-003>> |<<sh-ops>>
+|===
+
+=== Stakeholders
+
+[options="header",cols="1,2,2"]
+|===
+|Role/Name|Contact|Expectations
+
+| [[sh-product-owner]]Product Owner
+| Product Management
+| Feature delivery aligned with business goals
+
+| [[sh-cfo]]CFO (Alice Smith until 2026-07-14; Bob Johnson from 2026-07-15)
+| Finance
+| Cost control and ROI
+
+| [[sh-ops]]Head of Operations
+| Operations Team
+| Reliability, operability, low operational burden
+
+| [[sh-architect]]Software Architect
+| Architecture Team
+| Maintainability, scalability, technical coherence
+|===
+
+[[section-architecture-constraints]]
+== Architecture Constraints
+
+* [[con-001]]**On-premises deployment**: Regulatory requirements mandate on-premises hosting; cloud services are not allowed for order data.
+* [[con-002]]**Java ecosystem**: Development team expertise is in Java/Spring; other languages require training.
+
+[.links]
+|===
+|Source |owned-by
+
+|<<con-001>> |<<sh-cfo>>
+|<<con-002>> |<<sh-architect>>
+|===
+
+[[section-context-and-scope]]
+== Context and Scope
+
+Not detailed in this example. The system integrates with payment providers and inventory management systems.
+
+[[section-solution-strategy]]
+== Solution Strategy
+
+Event-driven architecture using a message broker for asynchronous communication between order processing and fulfillment.
+
+[[section-building-block-view]]
+== Building Block View
+
+Not detailed in this example.
+
+[[section-runtime-view]]
+== Runtime View
+
+Not detailed in this example.
+
+[[section-deployment-view]]
+== Deployment View
+
+On-premises Kubernetes cluster, per <<con-001>>.
+
+[[section-concepts]]
+== Crosscutting Concepts
+
+Not detailed in this example.
+
+[[section-design-decisions]]
+== Architecture Decisions
+
+[[adr-004]]
+=== ADR-004: Message broker selection (superseded)
+
+Date:: 2025-11-10
+
+Status:: Superseded by <<adr-007>>
+
+[.links]
+owned-by:: <<sh-architect>>
+addresses:: <<need-async-messaging>>
+
+[.triggers]
+baseline:: 2025-11-10
+on time.elapsed:: every P12M
+on alternative.emerged::
+on acme:vendor.end-of-life::
+
+==== Decision
+
+Selected ActiveMQ Classic.
+
+==== Rationale
+
+Initial choice based on team familiarity.
+
+[[adr-007]]
+=== ADR-007: Message broker selection
+
+Date:: 2026-03-02
+
+Status:: Accepted
+
+[.links]
+owned-by:: <<sh-architect>>
+uses-input:: <<in-007-cost>>, <<in-007-ops>>, <<in-007-throughput>>
+addresses:: <<need-async-messaging>>
+supersedes:: <<adr-004>>
+
+[.triggers]
+baseline:: 2026-03-02
+on time.elapsed:: every P3M
+on stakeholder.changed::
+on alternative.emerged::
+
+==== Context
+
+We need a message broker for asynchronous communication between microservices. The broker must:
+
+* Run on-premises (<<con-001>>)
+* Handle 10,000+ messages per hour (<<rq-001>>)
+* Be operationally simple for a small ops team
+
+Alternatives evaluated: RabbitMQ, Apache Kafka, ActiveMQ Artemis.
+
+Evaluation criteria and weights:
+
+* [[in-007-cost]]**Cost** (licensing + hardware): weight 40% (<<sh-cfo>>)
+* [[in-007-ops]]**Operability** (ease of operation, monitoring, recovery): weight 35% (<<sh-ops>>)
+* [[in-007-throughput]]**Throughput**: weight 25% (<<sh-architect>>)
+
+[.links]
+|===
+|Source |owned-by
+
+|<<in-007-cost>> |<<sh-cfo>>
+|<<in-007-ops>> |<<sh-ops>>
+|<<in-007-throughput>> |<<sh-architect>>
+|===
+
+==== Decision
+
+**RabbitMQ** was selected.
+
+Scoring (weighted):
+
+* RabbitMQ: 8.2
+* Kafka: 7.5
+* Artemis: 6.9
+
+==== Consequences
+
+* Operations team needs RabbitMQ training (1 week, budgeted).
+* Clustering configured for high availability.
+* Monitoring integrated with existing Prometheus stack.
+
+[[adr-009]]
+=== ADR-009: Migrate from ActiveMQ Classic to RabbitMQ
+
+Date:: 2026-03-15
+
+Status:: Accepted
+
+[.links]
+owned-by:: <<sh-architect>>
+relates-to:: <<adr-007>>, <<adr-004>>
+
+[.triggers]
+baseline:: 2026-03-15
+on time.elapsed:: every P12M
+
+==== Context
+
+<<adr-007>> replaced ActiveMQ Classic (<<adr-004>>) with RabbitMQ. The running services must be migrated.
+
+==== Decision
+
+Migrate service by service, with both brokers bridged during the transition.
+
+==== Consequences
+
+Migration completed 2026-04-01 with zero downtime.
+
+=== Revisit Triggers
+
+==== Topic map
+
+[.triggers-topics]
+|===
+|Topic |Elements
+
+|messaging
+|<<need-async-messaging>>
+
+|payment
+|<<rq-002>>
+|===
+
+==== Custom event types
+
+[.triggers-event-types]
+|===
+|Name |Mode |Subject kind |Routes |Payload |Default response
+
+|acme:vendor.end-of-life
+|published
+|decision
+|self -> whole
+|vendor; product; eol_date: end-of-life date; migration_path: vendor's suggested path (optional)
+|responsible: owner; due: P90D
+|===
+
+==== Events
+
+[.triggers-events]
+|===
+|ID |Date |Type |Subject |Payload |Published by
+
+|ev-001
+|2026-06-02
+|time.elapsed
+|adr-007
+|
+|Architecture team (time evaluation)
+
+|ev-002
+|2026-07-15
+|stakeholder.changed
+|sh-cfo
+|previous: Alice Smith; new: Bob Johnson; reason: Alice moved to VP Finance role
+|HR / org chart update
+
+|ev-003
+|2026-08-04
+|alternative.emerged
+|topic:messaging
+|candidate: NATS; category: software; claim: Lightweight messaging that runs on-premises; source: CNCF graduated projects
+|Architecture team
+
+|ev-004
+|2026-08-20
+|alternative.emerged
+|topic:messaging
+|candidate: Confluent Cloud; category: service; claim: Managed Kafka with enterprise support; source: Tech Radar Q3 2026; maturity: stable
+|Architecture team
+
+|ev-005
+|2026-09-10
+|acme:vendor.end-of-life
+|adr-004
+|vendor: Apache Software Foundation; product: ActiveMQ Classic; eol_date: 2026-12-31; migration_path: ActiveMQ Artemis
+|Vendor announcement
+|===
+
+==== Revisits
+
+[.triggers-revisits]
+|===
+|ID |Event |Subscriber |Scope |Responsible |Opened |Due |Outcome |Closed |Rationale
+
+|rv-001
+|ev-001
+|adr-007
+|whole
+|sh-architect
+|2026-06-02
+|2026-07-02
+|confirmed
+|2026-06-08
+|Decision still valid; RabbitMQ performing well in production.
+
+|rv-002
+|ev-002
+|adr-007
+|in-007-cost
+|sh-cfo
+|2026-07-15
+|2026-08-14
+|amended
+|2026-07-22
+|New CFO Bob Johnson lowered the cost weight to 30% and raised operability to 45%. effect: reopened
+
+|rv-003
+|ev-002
+|adr-007
+|whole
+|sh-architect
+|2026-07-22
+|2026-08-21
+|confirmed
+|2026-07-28
+|Re-scored with the new weights (cost 30%, operability 45%, throughput 25%). RabbitMQ still scores highest (8.5 against Kafka 7.8). follows: rv-002
+
+|rv-004
+|ev-003
+|adr-007
+|whole
+|sh-architect
+|2026-08-04
+|2026-10-03
+|
+|
+|NATS evaluation in progress; on-premises operation still to be validated.
+
+|rv-005
+|ev-004
+|adr-007
+|whole
+|sh-architect
+|2026-08-20
+|2026-10-19
+|dismissed
+|2026-08-25
+|Confluent Cloud is a cloud-managed service, which <<con-001>> rules out for order data. The claim does not hold.
+|===
+
+[[section-quality-scenarios]]
+== Quality Requirements
+
+=== Quality Requirements Overview
+
+See §1.2.
+
+=== Quality Scenarios
+
+* [[qs-001]]**Performance under load**: 10,000 orders/hour processed with p95 latency < 500ms
+
+[.links]
+|===
+|Source |owned-by |relates-to
+
+|<<qs-001>> |<<sh-architect>> |<<qg-001>>
+|===
+
+[[section-technical-risks]]
+== Risks and Technical Debts
+
+* [[risk-001]]**Broker single point of failure**: If the message broker goes down, order processing halts.
+  Mitigation: RabbitMQ clustering with automatic failover (in progress). Assessed 2026-05-01.
+
+* [[risk-002]]**Overdue revisit rv-004 on ADR-007**: the NATS assessment was due 2026-10-03 and is still open on 2026-10-04.
+  Impact: a better-suited broker could be missed. Mitigation: escalate to the architecture review board; close rv-004 by 2026-10-15.
+
+* [[td-001]]**Hardcoded configuration**: Broker connection strings are hardcoded in multiple services.
+  Remediation: move to a centralized config service (planned Q4 2026).
+
+[.links]
+|===
+|Source |owned-by
+
+|<<risk-001>> |<<sh-ops>>
+|<<risk-002>> |<<sh-architect>>
+|<<td-001>> |<<sh-architect>>
+|===
+
+`risk-001` is re-assessed periodically:
+
+[.triggers-subscriptions]
+|===
+|Subscriber |Baseline |time.elapsed
+
+|<<risk-001>> |2026-05-01 |every P6M
+|===
+
+[[section-glossary]]
+== Glossary
+
+Order:: A customer's purchase request, including items, quantities, and payment details.
+
+Fulfillment:: The process of picking, packing, and shipping an order.
+
+[appendix]
+== Expected evaluation at 2026-10-04
+
+This appendix applies the **manual procedure** of the `triggers` SPEC to this document. It is not part of the arc42 structure; a conforming implementation must reach the same result.
+
+=== Step 1: Evaluate time subscriptions
+
+* **adr-004**: superseded by adr-007, whose baseline is 2026-03-02, so adr-004 is inactive. Not evaluated.
+* **adr-007**: every P3M. Whole-scope revisits closed as confirmed or amended: rv-001 (2026-06-08) and rv-003 (2026-07-28). Anchor = 2026-07-28; due date = 2026-10-28. **Not due.** +
+  Check of ev-001 (T14e): at 2026-06-02 no revisit had closed yet, so the anchor was the baseline 2026-03-02 and the due date 2026-06-02, which is ev-001's date.
+* **adr-009**: every P12M from the baseline 2026-03-15; due date 2027-03-15. **Not due.**
+* **risk-001**: every P6M from the baseline 2026-05-01; due date 2026-11-01. **Not due.**
+
+Result: **no time subscription is due**.
+
+=== Step 2: Match events
+
+* **ev-001** (`time.elapsed`, adr-007): reaches adr-007 by the self route. Revisit: rv-001. ✓
+* **ev-002** (`stakeholder.changed`, sh-cfo):
+** adr-007 → `uses-input` → in-007-cost → `owned-by` → sh-cfo matches, scope in-007-cost.
+** adr-007 → `owned-by` → sh-architect does not reach sh-cfo.
+** Merged: one revisit, scope in-007-cost, responsible sh-cfo (the subject), due 2026-07-15 + P30D = 2026-08-14. Revisit: rv-002. ✓
+** rv-002 was amended with `effect: reopened`, so the follow-on rv-003 is required: scope whole, responsible sh-architect (owner), due 2026-07-22 + P30D = 2026-08-21. ✓
+* **ev-003** (`alternative.emerged`, topic messaging → need-async-messaging):
+** adr-007 addresses the need and is active: scope whole, responsible sh-architect, due 2026-08-04 + P60D = 2026-10-03. Revisit: rv-004. ✓
+** adr-004 addresses the need but is inactive since 2026-03-02. Not reached.
+* **ev-004** (`alternative.emerged`, topic messaging): reaches adr-007 only, due 2026-08-20 + P60D = 2026-10-19. Revisit: rv-005. ✓
+* **ev-005** (`acme:vendor.end-of-life`, adr-004): adr-004 subscribes to the type, but is inactive at 2026-09-10. Reaches no subscriber, so no revisit is needed. ✓
+
+Result: **no missing revisits**, and every revisit traces to a match or a follow-on (T17).
+
+=== Step 3: Open revisits
+
+Nothing to open.
+
+=== Step 4: List open and overdue revisits
+
+* **Open**: rv-004 (ev-003, adr-007, due 2026-10-03).
+* **Overdue**: rv-004, because 2026-10-04 is after 2026-10-03. It is listed in §11 as risk-002.
+
+=== Summary
+
+[cols="1,1"]
+|===
+|Due time subscriptions |none
+|Missing revisits |none
+|Open revisits |rv-004
+|Overdue revisits |rv-004
+|===

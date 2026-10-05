@@ -1,0 +1,53 @@
+= Custom vocabulary and external URI
+
+== Introduction and Goals
+
+Extensions used: links v0.1.0
+
+=== Stakeholders
+
+[options="header",cols="1,2,2"]
+|===
+|Role/Name|Contact|Expectations
+| [[sh-arch]]Architect | architect@example.com | -
+|===
+
+[.vocabulary]
+|===
+|Type |Name |Prefix |From |To |Description
+
+|kind
+|acme:product
+|acme-product-
+|
+|
+|A product-level requirement.
+
+|link
+|acme:implements
+|
+|decision
+|acme:product
+|The decision implements the product requirement.
+|===
+
+=== Requirements Overview
+
+* [[acme-product-checkout]]One-click checkout
+
+[.links]
+|===
+|Source |owned-by
+
+|<<acme-product-checkout>> |<<sh-arch>>
+|===
+
+== Architecture Decisions
+
+[[adr-001]]
+=== ADR-001: Decision 1
+
+[.links]
+owned-by:: <<sh-arch>>
+acme:implements:: <<acme-product-checkout>>
+relates-to:: https://example.com/adr/001, <<acme-product-checkout>>

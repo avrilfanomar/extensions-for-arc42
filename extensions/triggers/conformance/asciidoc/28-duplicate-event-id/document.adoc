@@ -1,0 +1,26 @@
+= Duplicate event ID
+
+Two events share the ID ev-001 (T4).
+
+== Introduction and Goals
+
+Extensions used: links v0.1.0, triggers v0.1.0
+
+=== Stakeholders
+
+[options="header",cols="1,2,2"]
+|===
+|Role/Name|Contact|Expectations
+| [[sh-cfo]]CFO | cfo@example.com | -
+|===
+
+== Architecture Decisions
+
+=== Revisit Triggers
+
+[.triggers-events]
+|===
+|ID |Date |Type |Subject |Payload |Published by
+|ev-001 |2026-06-01 |stakeholder.changed |sh-cfo |previous: Alice; new: Bob |HR
+|ev-001 |2026-07-01 |stakeholder.changed |sh-cfo |previous: Bob; new: Carol |HR
+|===

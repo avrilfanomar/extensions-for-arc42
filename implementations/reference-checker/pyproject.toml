@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arc42ext"
+version = "0.1.0"
+description = "Reference checker for arc42 extensions (links, triggers)"
+authors = [{name = "Andrii Andriichuk", email = "andrey000mar@gmail.com"}]
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+
+[project.scripts]
+arc42ext = "arc42ext.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

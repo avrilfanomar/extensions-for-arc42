@@ -1,0 +1,22 @@
+= Two owners
+
+== Introduction and Goals
+
+Extensions used: links v0.1.0
+
+=== Stakeholders
+
+[options="header",cols="1,2,2"]
+|===
+|Role/Name|Contact|Expectations
+| [[sh-arch]]Architect | architect@example.com | -
+| [[sh-cfo]]CFO | cfo@example.com | -
+|===
+
+== Architecture Decisions
+
+[[adr-001]]
+=== ADR-001: Decision 1
+
+[.links]
+owned-by:: <<sh-arch>>, <<sh-cfo>>

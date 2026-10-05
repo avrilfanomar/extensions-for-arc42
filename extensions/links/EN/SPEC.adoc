@@ -1,0 +1,187 @@
+= Extension: links
+:ext-version: 0.1.0
+:arc42-version: 9.0
+
+Attaches to:: Any section that holds identifiable content, mainly §1.1 Requirements Overview, §1.2 Quality Goals, §1.3 Stakeholders, §2 Architecture Constraints, §9 Architecture Decisions, §10 Quality Requirements, §11 Risks and Technical Debts
+Status:: Draft
+
+== Motivation
+
+Architecture documentation forms a web of dependencies: decisions depend on requirements, constraints and stakeholder input; risks trace to unmet quality goals; debts accumulate when constraints block the ideal solution. These relationships are implicit in prose, which makes impact analysis manual and error-prone.
+
+This extension makes relationships explicit through typed links. It enables:
+
+* **Traceability**: which decisions address which needs, and who owns which inputs.
+* **Impact analysis**: what depends on this constraint, and what breaks if it changes.
+* **Accountability**: which stakeholder role is accountable for each element.
+* **Extensibility**: other extensions can traverse links to route events, validate coverage, or generate views.
+
+The model is **tool-agnostic**. It defines what conforming documents and implementations must satisfy, not how they work internally or how the model is written down. Notation is defined by bindings (see <<conformance>>).
+
+== Model
+
+An **element** is an identifiable piece of content in the document. Each element has:
+
+* `id`: unique within the document, stable across revisions, never reused.
+* `kind`: the element's type (see <<vocabulary>>).
+* `title`: human-readable name or summary.
+* `home section`: the arc42 section where it lives.
+
+A **link** is a directed, typed relation from one element to another:
+
+----
+(source element, link type, target element)
+----
+
+Each link type restricts which source and target kinds it allows. Where this specification says a link type allows "any" kind, that includes declared custom kinds.
+
+Links are written once, at the source. There are no inverse link types: the inverse of a link (target to source) is derived by whoever reads the graph, and is never written as a link of its own.
+
+A **declaration** states which extensions, at which versions, a document uses. When a document defines custom kinds or link types, the declaration also lists them, with their descriptions and, for a custom link type, the source and target kinds it allows.
+
+[[vocabulary]]
+== Vocabulary
+
+=== Core element kinds
+
+[cols="1,3"]
+|===
+|Kind |Description
+
+|`stakeholder-role`
+|A role in §1.3 Stakeholders. Distinct from a person: when a person moves, the role stays.
+
+|`requirement`
+|A functional or domain requirement from §1.1.
+
+|`quality-goal`
+|A top-level quality goal from §1.2.
+
+|`quality-scenario`
+|A concrete scenario from §10 Quality Requirements.
+
+|`constraint`
+|An architecture constraint from §2.
+
+|`need`
+|An abstract capability the system must provide. May be explicit in §1.1 or implicit in the solution strategy.
+
+|`decision`
+|An architecture decision from §9.
+
+|`input`
+|A value a stakeholder provided that a decision depends on: a criterion weight, threshold, priority, budget figure or assumption.
+
+|`risk`
+|A technical risk from §11.
+
+|`debt`
+|A technical debt item from §11.
+|===
+
+=== Core link types
+
+[cols="1,1,1,3"]
+|===
+|Link type |From kind |To kind |Meaning
+
+|`owned-by`
+|any
+|`stakeholder-role`
+|The target role is accountable for the source element. At most one per element (rule L8).
+
+|`uses-input`
+|`decision`, `risk`, `debt`
+|`input`
+|The source depends on the target input value.
+
+|`addresses`
+|`decision`
+|`need`
+|The source decision addresses the target need.
+
+|`supersedes`
+|`decision`
+|`decision`
+|The source replaces the target. The graph formed by `supersedes` links MUST be acyclic.
+
+|`relates-to`
+|any
+|any
+|Informative relation. Never used for automated routing.
+|===
+
+=== Custom kinds and link types
+
+Extensions and projects may define custom kinds and link types. Custom names use the form:
+
+----
+<namespace>:<name>
+----
+
+where `namespace` is a short identifier (lowercase letters, digits and hyphens, starting with a letter) and `name` follows the same rules. Examples: `acme:product-requirement`, `acme:complies-with`.
+
+A namespace in use by a declared custom name is reserved within the document: a value of the form `<namespace>:…` is a custom name, never an external URI.
+
+== Rules
+
+The keywords MUST, MUST NOT and SHOULD in this section are as defined in BCP 14 (RFC 2119, RFC 8174).
+
+[cols="1,4"]
+|===
+|Rule |Requirement
+
+|**L1**
+|Every element ID MUST be unique within the document.
+
+|**L2**
+|Element IDs MUST be stable: once assigned, an ID stays with that element across revisions. When an element is removed, its ID MUST NOT be reused. +
+_L2 concerns the document's history. It cannot be checked from a single revision._
+
+|**L3**
+|Every link target MUST resolve to an element in the document, or be an external URI. A value is an external URI when it starts with a scheme (letters, digits, `+`, `-` or `.`, starting with a letter, followed by `:`) that is not a reserved namespace (see <<vocabulary>>) and not reserved by another extension in use. External URIs are not validated.
+
+|**L4**
+|For every link whose target is an element, the source element's kind and the target element's kind MUST be among the kinds the link type allows.
+
+|**L5**
+|The directed graph formed by `supersedes` links MUST be acyclic.
+
+|**L6**
+|Every custom kind and link type listed in the declaration MUST use the namespaced form and MUST be listed once. A custom link type's allowed source and target kinds MUST be core kinds, declared custom kinds, or "any". (Using an undeclared link type violates L7.)
+
+|**L7**
+|Every link type used MUST be a core link type or a declared custom link type. In particular, no inverse link type (such as "owns" or "superseded-by") may be written.
+
+|**L8**
+|An element MUST NOT have more than one `owned-by` link.
+|===
+
+[[conformance]]
+== Conformance and bindings
+
+A **binding** maps this model onto a specific representation or mechanism: how elements are identified, how links and the declaration are written, and how the kind of an element is recognised. This specification does not mandate a binding; it defines the semantics any binding must preserve.
+
+This extension's v0.1.0 release includes one normative binding:
+
+* **AsciiDoc** (`template.adoc`): notation for arc42 documents written in AsciiDoc.
+
+A **conforming document** is one that satisfies rules L1 and L3–L8 under the binding it uses, and whose history satisfies L2.
+
+A **conforming implementation** is a tool or process that, given a document in a binding it claims to support:
+
+1. Reports exactly the violations of rules L1 and L3–L8 that the binding's conformance cases expect.
+2. Builds the link graph, including derived inverse relations.
+3. Traverses link paths as other extensions specify (for example, from a decision through `uses-input` to an input, then through `owned-by` to a role).
+
+Implementations are tested against binding-specific conformance cases, which provide documents with known violations or known correct graphs.
+
+== Limitations
+
+* **Single document**: links do not span multiple documents.
+* **No link metadata**: links carry no additional attributes (such as strength or confidence).
+* **No n-ary relations**: all links are binary (source, target).
+* **No temporal model**: links carry no dates. Extensions that need a date for a link use a date of the source element (for example, `triggers` uses the baseline of a superseding decision).
+* **Language**: this version covers English (EN) documents only.
+
+Extensions that need these capabilities must define them and remain compatible with the core model defined here.

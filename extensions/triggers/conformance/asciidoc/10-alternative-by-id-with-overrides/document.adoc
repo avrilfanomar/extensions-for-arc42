@@ -1,0 +1,56 @@
+= Alternative by element ID, with overrides
+
+== Introduction and Goals
+
+Extensions used: links v0.1.0, triggers v0.1.0
+
+=== Stakeholders
+
+[options="header",cols="1,2,2"]
+|===
+|Role/Name|Contact|Expectations
+| [[sh-arch]]Architect | architect@example.com | -
+| [[sh-cfo]]CFO | cfo@example.com | -
+|===
+
+=== Requirements Overview
+
+* [[need-x]]Asynchronous messaging
+* [[need-y]]Reporting
+
+[.links]
+|===
+|Source |owned-by
+
+|<<need-x>> |<<sh-arch>>
+|<<need-y>> |<<sh-arch>>
+|===
+
+== Architecture Decisions
+
+[[adr-001]]
+=== ADR-001: Decision 1
+
+[.links]
+owned-by:: <<sh-arch>>
+addresses:: <<need-x>>
+
+[.triggers]
+baseline:: 2026-01-01
+on time.elapsed:: every P12M
+on alternative.emerged:: due P30D, responsible <<sh-cfo>>
+
+
+=== Revisit Triggers
+
+[.triggers-events]
+|===
+|ID |Date |Type |Subject |Payload |Published by
+|ev-001 |2026-05-01 |alternative.emerged |need-x |candidate: NATS; category: software; claim: covers it; source: radar |Radar
+|===
+
+[.triggers-revisits]
+|===
+|ID |Event |Subscriber |Scope |Responsible |Opened |Due |Outcome |Closed |Rationale
+
+|===

@@ -1,0 +1,16 @@
+= Topic prefix is reserved when triggers is in use
+
+With `triggers` declared, `topic:` is a reserved namespace, so a `topic:...` link target is not
+an external URI and must resolve to an element; here it does not (L3).
+
+== Introduction and Goals
+
+Extensions used: links v0.1.0, triggers v0.1.0
+
+== Architecture Decisions
+
+[[adr-001]]
+=== ADR-001: Decision 1
+
+[.links]
+relates-to:: topic:external-registry-entry

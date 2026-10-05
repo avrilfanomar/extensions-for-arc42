@@ -1,0 +1,42 @@
+= Custom event type with responsible subject but a non-role subject
+
+The custom type sets responsible to `subject`, which the SPEC allows only when the subject is a
+`stakeholder-role`; here the subject kind is `need` (T1).
+
+== Introduction and Goals
+
+Extensions used: links v0.1.0, triggers v0.1.0
+
+=== Stakeholders
+
+[options="header",cols="1,2,2"]
+|===
+|Role/Name|Contact|Expectations
+| [[sh-arch]]Architect | architect@example.com | -
+|===
+
+== Architecture Decisions
+
+[[adr-001]]
+=== ADR-001: Decision 1
+
+[.links]
+owned-by:: <<sh-arch>>
+
+[.triggers]
+baseline:: 2026-01-01
+on time.elapsed:: every P12M
+
+=== Revisit Triggers
+
+[.triggers-event-types]
+|===
+|Name |Mode |Subject kind |Routes |Payload |Default response
+
+|acme:supply-shift
+|published
+|need
+|addresses -> whole
+|candidate
+|responsible: subject; due: P30D
+|===

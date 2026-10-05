@@ -1,0 +1,259 @@
+= Architecture Documentation: Order Platform
+:toc: left
+:sectnums:
+
+This is a **demonstration document** for the `links` extension. It shows a fictional order processing platform.
+
+[[section-introduction-and-goals]]
+== Introduction and Goals
+
+Extensions used: links v0.1.0
+
+=== Requirements Overview
+
+The platform processes customer orders, integrates with payment providers, and coordinates fulfillment.
+
+Key requirements:
+
+* [[rq-001]]**RQ-001**: Process 10,000 orders per hour during peak times
+* [[rq-002]]**RQ-002**: Support multiple payment methods (credit card, PayPal, wire transfer)
+* [[need-async-messaging]]**Async messaging**: Decouple order processing from fulfillment to handle load spikes
+
+[.links]
+|===
+|Source |owned-by
+
+|<<rq-001>> |<<sh-product-owner>>
+|<<rq-002>> |<<sh-product-owner>>
+|<<need-async-messaging>> |<<sh-architect>>
+|===
+
+=== Quality Goals
+
+* [[qg-001]]**Performance**: 95th percentile order processing latency < 500ms
+* [[qg-002]]**Reliability**: 99.9% uptime
+* [[qg-003]]**Operability**: Mean time to recovery < 15 minutes
+
+[.links]
+|===
+|Source |owned-by
+
+|<<qg-001>> |<<sh-product-owner>>
+|<<qg-002>> |<<sh-ops>>
+|<<qg-003>> |<<sh-ops>>
+|===
+
+=== Stakeholders
+
+[options="header",cols="1,2,2"]
+|===
+|Role/Name|Contact|Expectations
+
+| [[sh-product-owner]]Product Owner
+| Product Management
+| Feature delivery aligned with business goals
+
+| [[sh-cfo]]CFO
+| Finance
+| Cost control and ROI
+
+| [[sh-ops]]Head of Operations
+| Operations Team
+| Reliability, operability, low operational burden
+
+| [[sh-architect]]Software Architect
+| Architecture Team
+| Maintainability, scalability, technical coherence
+|===
+
+[[section-architecture-constraints]]
+== Architecture Constraints
+
+* [[con-001]]**On-premises deployment**: Regulatory requirements mandate on-premises hosting; cloud services are not allowed for order data.
+* [[con-002]]**Java ecosystem**: Development team expertise is in Java/Spring; other languages require training.
+
+[.links]
+|===
+|Source |owned-by
+
+|<<con-001>> |<<sh-cfo>>
+|<<con-002>> |<<sh-architect>>
+|===
+
+[[section-context-and-scope]]
+== Context and Scope
+
+Not detailed in this example. The system integrates with payment providers and inventory management systems.
+
+[[section-solution-strategy]]
+== Solution Strategy
+
+Event-driven architecture using a message broker for asynchronous communication between order processing and fulfillment.
+
+[[section-building-block-view]]
+== Building Block View
+
+Not detailed in this example.
+
+[[section-runtime-view]]
+== Runtime View
+
+Not detailed in this example.
+
+[[section-deployment-view]]
+== Deployment View
+
+On-premises Kubernetes cluster, per <<con-001>>.
+
+[[section-concepts]]
+== Crosscutting Concepts
+
+Not detailed in this example.
+
+[[section-design-decisions]]
+== Architecture Decisions
+
+[[adr-004]]
+=== ADR-004: Message broker selection (superseded)
+
+Date:: 2025-11-10
+
+Status:: Superseded by <<adr-007>>
+
+[.links]
+owned-by:: <<sh-architect>>
+addresses:: <<need-async-messaging>>
+
+==== Decision
+
+Selected ActiveMQ Classic.
+
+==== Rationale
+
+Initial choice based on team familiarity.
+
+---
+
+[[adr-007]]
+=== ADR-007: Message broker selection
+
+Date:: 2026-03-02
+
+Status:: Accepted
+
+[.links]
+owned-by:: <<sh-architect>>
+uses-input:: <<in-007-cost>>, <<in-007-ops>>, <<in-007-throughput>>
+addresses:: <<need-async-messaging>>
+supersedes:: <<adr-004>>
+
+==== Context
+
+We need a message broker for asynchronous communication between microservices. The broker must:
+
+* Run on-premises (<<con-001>>)
+* Handle 10,000+ messages per hour (<<rq-001>>)
+* Be operationally simple for a small ops team
+
+Alternatives evaluated: RabbitMQ, Apache Kafka, ActiveMQ Artemis.
+
+Evaluation criteria and weights:
+
+* [[in-007-cost]]**Cost** (licensing + hardware): weight 40% (<<sh-cfo>>)
+* [[in-007-ops]]**Operability** (ease of operation, monitoring, recovery): weight 35% (<<sh-ops>>)
+* [[in-007-throughput]]**Throughput**: weight 25% (<<sh-architect>>)
+
+[.links]
+|===
+|Source |owned-by
+
+|<<in-007-cost>> |<<sh-cfo>>
+|<<in-007-ops>> |<<sh-ops>>
+|<<in-007-throughput>> |<<sh-architect>>
+|===
+
+==== Decision
+
+**RabbitMQ** was selected.
+
+Scoring (weighted):
+
+* RabbitMQ: 8.2
+* Kafka: 7.5
+* Artemis: 6.9
+
+==== Consequences
+
+* Operations team needs RabbitMQ training (1 week, budgeted).
+* Clustering configured for high availability.
+* Monitoring integrated with existing Prometheus stack.
+
+---
+
+[[adr-009]]
+=== ADR-009: Migrate from ActiveMQ Classic to RabbitMQ
+
+Date:: 2026-03-15
+
+Status:: Accepted
+
+[.links]
+owned-by:: <<sh-architect>>
+relates-to:: <<adr-007>>, <<adr-004>>
+
+==== Context
+
+<<adr-007>> replaced ActiveMQ Classic (<<adr-004>>) with RabbitMQ. The running services must be migrated.
+
+==== Decision
+
+Migrate to RabbitMQ, consistent with <<adr-007>>.
+
+==== Consequences
+
+Migration completed 2026-04-01 with zero downtime.
+
+[[section-quality-scenarios]]
+== Quality Requirements
+
+=== Quality Requirements Overview
+
+See §1.2.
+
+=== Quality Scenarios
+
+* [[qs-001]]**Performance under load**: 10,000 orders/hour processed with p95 latency < 500ms
+
+[.links]
+|===
+|Source |owned-by |relates-to
+
+|<<qs-001>> |<<sh-architect>> |<<qg-001>>
+|===
+
+[[section-technical-risks]]
+== Risks and Technical Debts
+
+* [[risk-001]]**Broker single point of failure**: If the message broker goes down, order processing halts.
+  - Mitigation: RabbitMQ clustering with automatic failover (in progress).
+  - Owner: <<sh-ops>>
+
+* [[td-001]]**Hardcoded configuration**: Broker connection strings are hardcoded in multiple services.
+  - Impact: Environment-specific builds required; migration is error-prone.
+  - Remediation: Move to centralized config service (planned Q3 2026).
+  - Owner: <<sh-architect>>
+
+[.links]
+|===
+|Source |owned-by
+
+|<<risk-001>> |<<sh-ops>>
+|<<td-001>> |<<sh-architect>>
+|===
+
+[[section-glossary]]
+== Glossary
+
+Order:: A customer's purchase request, including items, quantities, and payment details.
+
+Fulfillment:: The process of picking, packing, and shipping an order.

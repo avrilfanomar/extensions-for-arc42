@@ -1,0 +1,53 @@
+= Custom event type
+
+== Introduction and Goals
+
+Extensions used: links v0.1.0, triggers v0.1.0
+
+=== Stakeholders
+
+[options="header",cols="1,2,2"]
+|===
+|Role/Name|Contact|Expectations
+| [[sh-arch]]Architect | architect@example.com | -
+|===
+
+== Architecture Decisions
+
+[[adr-001]]
+=== ADR-001: Decision 1
+
+[.links]
+owned-by:: <<sh-arch>>
+
+[.triggers]
+baseline:: 2026-01-01
+on time.elapsed:: every P12M
+on acme:vendor.end-of-life::
+
+
+=== Revisit Triggers
+
+[.triggers-event-types]
+|===
+|Name |Mode |Subject kind |Routes |Payload |Default response
+
+|acme:vendor.end-of-life
+|published
+|decision
+|self -> whole
+|vendor; product; migration_path: suggested path (optional)
+|responsible: owner; due: P90D
+|===
+
+[.triggers-events]
+|===
+|ID |Date |Type |Subject |Payload |Published by
+|ev-001 |2026-05-01 |acme:vendor.end-of-life |adr-001 |vendor: ACME; product: Broker |Vendor
+|===
+
+[.triggers-revisits]
+|===
+|ID |Event |Subscriber |Scope |Responsible |Opened |Due |Outcome |Closed |Rationale
+
+|===

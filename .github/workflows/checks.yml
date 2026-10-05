@@ -1,0 +1,58 @@
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  asciidoctor-render:
+    name: AsciiDoc Render Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Conformance documents are deliberately invalid (duplicate anchors, dangling xrefs), so they are excluded.
+      # Asciidoctor logs unresolved xrefs at INFO level, so the log is grepped instead of using --failure-level.
+      # Output goes to a real file: with -o /dev/null Asciidoctor skips conversion and never checks xrefs.
+      - name: Render all .adoc files
+        shell: bash
+        run: |
+          set -o pipefail
+          docker run --rm -v "$PWD":/documents -w /documents asciidoctor/docker-asciidoctor \
+            sh -c "find . -name '*.adoc' -not -path '*/conformance/*' -not -path './.git/*' -exec asciidoctor -v -o /tmp/render.html {} \; 2>&1" \
+            | tee render.log
+          ! grep -iE 'WARN|ERROR|possible invalid reference' render.log
+
+  python-tests:
+    name: Python Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install reference-checker
+        run: |
+          cd implementations/reference-checker
+          pip install -e .
+
+      - name: Run tests
+        run: |
+          cd implementations/reference-checker
+          python -m unittest discover -s tests -v
+
+      - name: Validate examples
+        run: |
+          cd implementations/reference-checker
+          arc42ext validate ../../extensions/links/EN/example.adoc --date 2026-10-04
+          arc42ext validate ../../extensions/triggers/EN/example.adoc --date 2026-10-04

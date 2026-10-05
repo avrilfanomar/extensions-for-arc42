@@ -1,0 +1,40 @@
+= Whole-scope confirmation resets the timer
+
+== Introduction and Goals
+
+Extensions used: links v0.1.0, triggers v0.1.0
+
+=== Stakeholders
+
+[options="header",cols="1,2,2"]
+|===
+|Role/Name|Contact|Expectations
+| [[sh-arch]]Architect | architect@example.com | -
+|===
+
+== Architecture Decisions
+
+[[adr-001]]
+=== ADR-001: Decision 1
+
+[.links]
+owned-by:: <<sh-arch>>
+
+[.triggers]
+baseline:: 2026-01-01
+on time.elapsed:: every P6M
+
+
+=== Revisit Triggers
+
+[.triggers-events]
+|===
+|ID |Date |Type |Subject |Payload |Published by
+|ev-001 |2026-07-01 |time.elapsed |adr-001 | |Architect
+|===
+
+[.triggers-revisits]
+|===
+|ID |Event |Subscriber |Scope |Responsible |Opened |Due |Outcome |Closed |Rationale
+|rv-001 |ev-001 |adr-001 |whole |sh-arch |2026-07-01 |2026-07-31 |confirmed |2026-07-10 |Still valid.
+|===

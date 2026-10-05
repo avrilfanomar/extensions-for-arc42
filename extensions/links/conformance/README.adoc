@@ -1,0 +1,7 @@
+= links conformance cases
+
+Each case tests the rules of the `links` SPEC through one binding. The cases of the AsciiDoc binding live in `asciidoc/`. Each case directory holds `document.adoc` (the input; many are deliberately invalid) and `expected.json`.
+
+`expected.json` uses the schema of the `triggers` conformance cases (see `../../triggers/conformance/README.adoc`), so one runner serves both extensions. For `links` cases, only `errors` and `warnings` are ever non-empty.
+
+Comparison: `errors` and `warnings` are compared as sets of rule IDs. How many times a rule fires, and the messages, do not matter. Rule L2 concerns a document's history and has no cases.

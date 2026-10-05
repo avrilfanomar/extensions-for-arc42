@@ -1,4 +1,19 @@
 = Changelog
 
 == Unreleased
-* triggers: initial draft
+
+=== Extensions
+
+* **links 0.1.0** (draft): Typed links between elements for traceability, ownership, and dependencies. Attaches to §1, §2, §9, §10, §11.
+* **triggers 0.1.0** (draft, requires links 0.1.x): Event-driven decision revisits. Core event types: time.elapsed, stakeholder.changed, alternative.emerged. Attaches to §1.3, §9, §11. T1 allows at most one subscription per event type and requires a custom type's *subject* default response to have a `stakeholder-role` subject kind; T16 recommends a baseline on any decision that supersedes a subscriber (otherwise the supersession never takes effect — a warning).
+
+=== Implementations
+
+* **reference-checker 0.1.0**: Python 3.10+ CLI tool (`arc42ext`) for validating links and triggers extensions, with `validate` and `status` commands. Apache-2.0 licensed.
+
+=== Documentation
+
+* AsciiDoc bindings for both extensions (template.adoc)
+* Complete examples demonstrating both extensions
+* Conformance test cases for the AsciiDoc binding of both extensions
+* SPEC documents define concept, model, rules, and conformance criteria

@@ -1,0 +1,52 @@
+= effect: reopened without a follow-on revisit
+
+== Introduction and Goals
+
+Extensions used: links v0.1.0, triggers v0.1.0
+
+=== Stakeholders
+
+[options="header",cols="1,2,2"]
+|===
+|Role/Name|Contact|Expectations
+| [[sh-arch]]Architect | architect@example.com | -
+| [[sh-cfo]]CFO | cfo@example.com | -
+|===
+
+== Architecture Decisions
+
+[[adr-001]]
+=== ADR-001: Decision 1
+
+* [[in-001]]Cost weight
+
+[.links]
+owned-by:: <<sh-arch>>
+uses-input:: <<in-001>>
+
+[.triggers]
+baseline:: 2026-01-01
+on time.elapsed:: every P12M
+on stakeholder.changed::
+
+[.links]
+|===
+|Source |owned-by
+
+|<<in-001>> |<<sh-cfo>>
+|===
+
+
+=== Revisit Triggers
+
+[.triggers-events]
+|===
+|ID |Date |Type |Subject |Payload |Published by
+|ev-001 |2026-08-01 |stakeholder.changed |sh-cfo |previous: Alice; new: Bob |HR
+|===
+
+[.triggers-revisits]
+|===
+|ID |Event |Subscriber |Scope |Responsible |Opened |Due |Outcome |Closed |Rationale
+|rv-001 |ev-001 |adr-001 |in-001 |sh-cfo |2026-08-01 |2026-08-31 |amended |2026-08-20 |Weight 30%. effect: reopened
+|===

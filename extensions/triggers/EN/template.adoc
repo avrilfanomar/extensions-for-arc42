@@ -1,0 +1,290 @@
+= triggers extension: AsciiDoc template
+
+This template defines the **AsciiDoc binding** for the `triggers` extension (normative), followed by blocks to copy into an arc42 document.
+
+**Prerequisite**: the document uses the `links` extension and its binding (see `links/EN/template.adoc`). Declare both:
+
+[source,asciidoc]
+----
+Extensions used: links v0.1.0, triggers v0.1.0
+----
+
+== Notation
+
+=== Identifiers and values
+
+* In the tables of this binding, an element may be written as an xref (`+<<adr-007>>+`) or as a bare ID (`adr-007`).
+* Event IDs start with `ev-` and revisit IDs with `rv-`. They are not elements of the `links` extension.
+* A topic is written `topic:<name>`, such as `topic:messaging`. The `topic` prefix is reserved and is never an external URI.
+* Dates are `YYYY-MM-DD`; durations are `PnYnMnWnD` with at least one part.
+
+=== Subscriptions: local form
+
+A description list with the role `[.triggers]`, placed in the subscriber's section. As in the `links` local form, the subscriber is the innermost enclosing section that has an element block anchor.
+
+[source,asciidoc]
+----
+[[adr-007]]
+=== ADR-007: Message broker selection
+
+[.triggers]
+baseline:: 2026-03-02
+on time.elapsed:: every P3M
+on stakeholder.changed::
+on alternative.emerged:: due P60D, responsible <<sh-architect>>
+----
+
+* `baseline:: <date>`: the subscriber's baseline date. A decision that supersedes a subscriber but is not itself a subscriber may carry a `[.triggers]` block with only `baseline::`, to give the supersession an effective date (T16).
+* `on <event type>:: <clauses>`: a subscription. An event type may appear at most once per subscriber (T1). The clauses are comma-separated, and none is required:
+** `every <duration>` or `at <date>`: the parameter of `time.elapsed`.
+** `due <duration>`: overrides the time allowed.
+** `+responsible <<sh-…>>+`: overrides the responsible role.
+** `+subject <<id>>+`: a subject filter.
+
+=== Subscriptions: tabular form
+
+A table with the role `[.triggers-subscriptions]`, for subscribers that are list items or table rows (such as §11 risks), or to document many subscribers at once. The first row is the header. The first two columns are `Subscriber` and `Baseline`; every other column is headed by an event type. An empty cell means no subscription; `yes` means a subscription with defaults; any other text holds clauses as in the local form.
+
+[source,asciidoc]
+----
+[.triggers-subscriptions]
+|===
+|Subscriber |Baseline |time.elapsed |alternative.emerged
+
+|<<risk-001>>
+|2026-05-01
+|every P6M
+|
+
+|<<adr-009>>
+|2026-03-15
+|every P12M
+|yes
+|===
+----
+
+=== Revisit Triggers subsection
+
+Events, revisits, the topic map and custom event types live in tables in an additive subsection at the end of §9, titled `Revisit Triggers`. Each table's first row is its header, and the columns are fixed.
+
+==== Events
+
+Role `[.triggers-events]`, columns `ID | Date | Type | Subject | Payload | Published by`. The payload is `key: value` pairs separated by `;`. Publishing an event means appending a row.
+
+==== Revisits
+
+Role `[.triggers-revisits]`, columns `ID | Event | Subscriber | Scope | Responsible | Opened | Due | Outcome | Closed | Rationale`.
+
+* `Scope` is `whole` or a comma-separated list of inputs.
+* An empty `Outcome` means the revisit is open.
+* The `Rationale` cell is free text. It also carries the closing fields `effect: unchanged|reopened`, `follows: <rv-id>` and `successor: <adr-id>`. These keys are reserved in the cell; write each at most once.
+
+==== Topic map
+
+Role `[.triggers-topics]`, columns `Topic | Elements`. The topic is its bare name (`messaging`); the elements are a comma-separated list.
+
+==== Custom event types
+
+Role `[.triggers-event-types]`, columns `Name | Mode | Subject kind | Routes | Payload | Default response`.
+
+* `Mode` must be `published` in v0.1.
+* `Routes` is a `;`-separated list of routes. A route is `self` or link types joined by `/`, then `->` and the scope: `self -> whole`, `addresses -> whole`, `uses-input/owned-by -> inputs`.
+* `Payload` is a `;`-separated list of attribute names, each optionally followed by `: <description>`. An attribute is optional when its description ends with `(optional)`.
+* `Default response` is `+responsible: owner|subject|<<sh-…>>; due: <duration>+`.
+
+== Template blocks
+
+=== §9 Decision with subscriptions (local form)
+
+[source,asciidoc]
+----
+[[adr-007]]
+=== ADR-007: Message broker selection
+
+Date:: 2026-03-02
+
+Status:: Accepted
+
+[.links]
+owned-by:: <<sh-architect>>
+uses-input:: <<in-007-cost>>, <<in-007-ops>>, <<in-007-throughput>>
+addresses:: <<need-async-messaging>>
+
+[.triggers]
+baseline:: 2026-03-02
+on time.elapsed:: every P3M
+on stakeholder.changed::
+on alternative.emerged::
+
+==== Context
+
+Evaluation criteria and weights:
+
+* [[in-007-cost]]**Cost**: weight 40%, provided by <<sh-cfo>>
+* [[in-007-ops]]**Operability**: weight 35%, provided by <<sh-ops>>
+* [[in-007-throughput]]**Throughput**: weight 25%, provided by <<sh-architect>>
+
+[.links]
+|===
+|Source |owned-by
+
+|<<in-007-cost>> |<<sh-cfo>>
+|<<in-007-ops>> |<<sh-ops>>
+|<<in-007-throughput>> |<<sh-architect>>
+|===
+
+==== Decision
+
+...
+----
+
+=== §9 Revisit Triggers subsection
+
+[source,asciidoc]
+----
+=== Revisit Triggers
+
+==== Topic map
+
+[.triggers-topics]
+|===
+|Topic |Elements
+
+|messaging
+|<<need-async-messaging>>
+|===
+
+==== Custom event types
+
+[.triggers-event-types]
+|===
+|Name |Mode |Subject kind |Routes |Payload |Default response
+
+|acme:vendor.end-of-life
+|published
+|decision
+|self -> whole
+|vendor; product; eol_date; migration_path: (optional)
+|responsible: owner; due: P90D
+|===
+
+==== Events
+
+[.triggers-events]
+|===
+|ID |Date |Type |Subject |Payload |Published by
+
+|ev-001
+|2026-06-02
+|time.elapsed
+|adr-007
+|
+|Architecture team (time evaluation)
+
+|ev-002
+|2026-07-15
+|stakeholder.changed
+|sh-cfo
+|previous: Alice Smith; new: Bob Johnson
+|HR / org chart update
+
+|ev-003
+|2026-08-04
+|alternative.emerged
+|topic:messaging
+|candidate: NATS; category: software; claim: Lightweight messaging that runs on-premises; source: CNCF graduated projects
+|Architecture team
+|===
+
+==== Revisits
+
+[.triggers-revisits]
+|===
+|ID |Event |Subscriber |Scope |Responsible |Opened |Due |Outcome |Closed |Rationale
+
+|rv-001
+|ev-001
+|adr-007
+|whole
+|sh-architect
+|2026-06-02
+|2026-07-02
+|confirmed
+|2026-06-08
+|Decision still valid; no new requirements.
+
+|rv-002
+|ev-002
+|adr-007
+|in-007-cost
+|sh-cfo
+|2026-07-15
+|2026-08-14
+|amended
+|2026-07-22
+|Cost weight reduced to 30%. effect: reopened
+
+|rv-003
+|ev-002
+|adr-007
+|whole
+|sh-architect
+|2026-07-22
+|2026-08-21
+|confirmed
+|2026-07-28
+|Re-evaluated with the new weights; RabbitMQ still preferred. follows: rv-002
+
+|rv-004
+|ev-003
+|adr-007
+|whole
+|sh-architect
+|2026-08-04
+|2026-10-03
+|
+|
+|
+|===
+----
+
+=== §11 Risk with periodic re-assessment
+
+A §11 risk written as a list item uses the tabular forms:
+
+[source,asciidoc]
+----
+* [[risk-003]]**Third-party API rate limits**: ...
+
+[.links]
+|===
+|Source |owned-by
+
+|<<risk-003>> |<<sh-ops>>
+|===
+
+[.triggers-subscriptions]
+|===
+|Subscriber |Baseline |time.elapsed
+
+|<<risk-003>> |2026-05-01 |every P6M
+|===
+----
+
+=== §11 Overdue revisit as a risk
+
+When a revisit is overdue, it SHOULD appear in §11:
+
+[source,asciidoc]
+----
+* [[risk-004]]**Overdue revisit rv-004 on ADR-007**: the `alternative.emerged` event ev-003 claimed NATS covers asynchronous messaging. The revisit was due 2026-10-03 and is still open.
+  Mitigation: escalate to the architecture review board, or close rv-004.
+----
+
+=== Publishing an event
+
+Append a row to the Events table. Then apply the manual procedure of the SPEC (by hand, or with a conforming tool) to find the revisits to open.
+
+=== Closing a revisit
+
+Fill in the revisit row's `Outcome`, `Closed` and `Rationale`. For `amended` with inputs scope, add `effect: unchanged` or `effect: reopened` to the Rationale cell. With `effect: reopened`, add the follow-on whole-scope revisit and put `follows: <rv-id>` in its Rationale cell. For `superseded`, add `successor: <adr-id>`.

@@ -1,0 +1,45 @@
+= Two revisits for one event and subscriber
+
+Both rv-001 and rv-002 are revisits of the same event ev-001 on the same subscriber adr-001,
+and neither is a follow-on (T9).
+
+== Introduction and Goals
+
+Extensions used: links v0.1.0, triggers v0.1.0
+
+=== Stakeholders
+
+[options="header",cols="1,2,2"]
+|===
+|Role/Name|Contact|Expectations
+| [[sh-arch]]Architect | architect@example.com | -
+|===
+
+== Architecture Decisions
+
+[[adr-001]]
+=== ADR-001: Decision 1
+
+[.links]
+owned-by:: <<sh-arch>>
+
+[.triggers]
+baseline:: 2026-01-01
+on time.elapsed:: every P12M
+on stakeholder.changed::
+
+=== Revisit Triggers
+
+[.triggers-events]
+|===
+|ID |Date |Type |Subject |Payload |Published by
+|ev-001 |2026-06-01 |stakeholder.changed |sh-arch |previous: Alice; new: Bob |HR
+|===
+
+[.triggers-revisits]
+|===
+|ID |Event |Subscriber |Scope |Responsible |Opened |Due |Outcome |Closed |Rationale
+
+|rv-001 |ev-001 |adr-001 |whole |sh-arch |2026-06-01 |2026-07-01 | | |
+|rv-002 |ev-001 |adr-001 |whole |sh-arch |2026-06-01 |2026-07-01 | | |
+|===

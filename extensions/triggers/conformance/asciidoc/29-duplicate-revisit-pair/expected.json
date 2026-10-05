@@ -1,0 +1,9 @@
+{
+  "date": "2026-07-01",
+  "errors": ["T9"],
+  "warnings": [],
+  "due": [],
+  "missing_revisits": [],
+  "open": ["rv-001", "rv-002"],
+  "overdue": []
+}

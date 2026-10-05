@@ -1,0 +1,16 @@
+= Topic prefix is an external URI without triggers
+
+The document declares only `links`, so `topic:` is not a reserved namespace and `topic:...`
+is an external URI, not a dangling target (L3).
+
+== Introduction and Goals
+
+Extensions used: links v0.1.0
+
+== Architecture Decisions
+
+[[adr-001]]
+=== ADR-001: Decision 1
+
+[.links]
+relates-to:: topic:external-registry-entry

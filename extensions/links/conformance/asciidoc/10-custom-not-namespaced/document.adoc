@@ -1,0 +1,34 @@
+= Custom name not namespaced
+
+== Introduction and Goals
+
+Extensions used: links v0.1.0
+
+=== Stakeholders
+
+[options="header",cols="1,2,2"]
+|===
+|Role/Name|Contact|Expectations
+| [[sh-arch]]Architect | architect@example.com | -
+|===
+
+[.vocabulary]
+|===
+|Type |Name |Prefix |From |To |Description
+
+|link
+|implements
+|
+|decision
+|decision
+|Not namespaced.
+|===
+
+== Architecture Decisions
+
+[[adr-001]]
+=== ADR-001: Decision 1
+
+[.links]
+owned-by:: <<sh-arch>>
+implements:: <<adr-001>>

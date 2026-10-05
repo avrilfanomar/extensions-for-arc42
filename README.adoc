@@ -9,22 +9,48 @@ it never renames, removes or replaces one.
 * Ignorable: a document stays valid arc42 without it
 * Plain text: AsciiDoc source, no tooling required
 * One concern per extension, versioned independently
+* Concept separate from implementation: SPEC → binding → implementations
+* Dependencies are declared
 
 == Extensions
-[cols="1,1,3"]
+[cols="1,1,3,2"]
 |===
-|Extension |Attaches to |Purpose
-|link:extensions/triggers/EN/SPEC.adoc[triggers] |§9, §11 |Conditions that force a decision to be revisited
+|Extension |Attaches to |Purpose |Dependencies
+
+|link:extensions/links/EN/SPEC.adoc[links]
+|§1.1, §1.2, §1.3, §2, §9, §10, §11
+|Typed links between elements (traceability, ownership, dependencies)
+|–
+
+|link:extensions/triggers/EN/SPEC.adoc[triggers]
+|§1.3, §9, §11
+|Event-driven decision revisits (time, stakeholder changes, emerging alternatives)
+|links 0.1.x
 |===
+
+== Implementations
+
+link:implementations/reference-checker/[reference-checker]:: Python 3.10+ command-line tool for validating documents and checking revisit status. Standard library only, Apache-2.0 licensed.
 
 == Adoption
-Declare usage in §1 of your document and link to a tagged version, e.g.:
-`Extensions used: triggers v1.0.0`
+
+Declare usage in §1 of your document, e.g.:
+
+----
+Extensions used: links v0.1.0, triggers v0.1.0
+----
+
+For production use, reference a tagged release once v1.0.0 is published.
 
 == Attribution and license
+
 arc42 was created by Dr. Gernot Starke and Dr. Peter Hruschka (https://arc42.org)
 and is licensed under CC BY-SA 4.0. This repository adds new material
 alongside arc42 and does not alter the original template text.
-Licensed under CC BY-SA 4.0 (see LICENSE).
+
+**Licensing**:
+
+* Documentation and specifications (`extensions/*/EN/*.adoc`, examples, conformance cases): **CC BY-SA 4.0** (see link:LICENSE[LICENSE])
+* Code (`implementations/`): **Apache-2.0** (see `implementations/*/LICENSE`)
 
 Independent project; not affiliated with or endorsed by arc42 or its creators.

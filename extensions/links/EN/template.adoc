@@ -1,0 +1,228 @@
+= links extension: AsciiDoc template
+
+This template defines the **AsciiDoc binding** for the `links` extension (normative), followed by blocks to copy into an arc42 document.
+
+The notation is line-oriented, so it can be read without an AsciiDoc processor. Readers of the binding ignore comments, listing and literal blocks, and `ifdef::arc42help[]` blocks, and follow `include::` directives.
+
+== Notation
+
+=== Declaration
+
+At the start of §1 Introduction and Goals, before the first subsection, a line starting with `Extensions used:` lists the extensions and versions:
+
+[source,asciidoc]
+----
+Extensions used: links v0.1.0
+----
+
+If the document defines custom kinds or link types, a vocabulary table follows the declaration. Its role is `[.vocabulary]` and its columns are fixed:
+
+[source,asciidoc]
+----
+[.vocabulary]
+|===
+|Type |Name |Prefix |From |To |Description
+
+|kind
+|acme:product
+|acme-product-
+|
+|
+|A product-level requirement from the roadmap.
+
+|link
+|acme:implements
+|
+|decision
+|acme:product
+|The decision implements the product requirement.
+|===
+----
+
+* `Type`: `kind` or `link`.
+* `Name`: the namespaced name.
+* `Prefix`: for a kind, the element ID prefix that marks elements of that kind. It must not overlap a core prefix.
+* `From`, `To`: for a link type, comma-separated kinds, or `any`.
+
+=== Elements
+
+An element is an anchor `+[[id]]+` whose ID starts with the prefix of its kind:
+
+[cols="1,1"]
+|===
+|Kind |Prefix
+
+|`stakeholder-role` |`sh-`
+|`requirement` |`rq-`
+|`quality-goal` |`qg-`
+|`quality-scenario` |`qs-`
+|`constraint` |`con-`
+|`need` |`need-`
+|`decision` |`adr-`
+|`input` |`in-`
+|`risk` |`risk-`
+|`debt` |`td-`
+|===
+
+Custom kinds use the prefix declared in the vocabulary table. When prefixes overlap, the longest matching prefix wins. Anchors with other IDs are not elements and are ignored.
+
+Each anchor defines its element once. Write it in one of two places:
+
+* **Block anchor** on the line before a section title. The element's title is the section title.
++
+[source,asciidoc]
+----
+[[adr-007]]
+=== ADR-007: Message broker selection
+----
+
+* **Inline anchor** at the start of a table cell or list item. The element's title is the rest of that line.
++
+[source,asciidoc]
+----
+| [[sh-cfo]]CFO | finance@example.com | Cost and ROI decisions
+----
++
+This keeps arc42 tables intact. For §1.3 Stakeholders, the table keeps its three columns `Role/Name | Contact | Expectations`.
+
+To refer to an element anywhere else, use an xref `+<<id>>+`, never another anchor.
+
+=== Links
+
+A link value is a comma-separated list of targets. Each target is an xref `+<<id>>+` (or `+<<id,text>>+`) or an external URI such as `https://example.com/adr`.
+
+Links are written at the source element, in one of two forms.
+
+==== Local form
+
+A description list with the role `[.links]`. Each term is a link type; its definition holds the targets:
+
+[source,asciidoc]
+----
+[[adr-007]]
+=== ADR-007: Message broker selection
+
+[.links]
+owned-by:: <<sh-architect>>
+uses-input:: <<in-007-cost>>, <<in-007-ops>>
+addresses:: <<need-async-messaging>>
+----
+
+The source is the innermost enclosing section that has an element block anchor. A `[.links]` list inside `==== Context` of the ADR above belongs to `adr-007`.
+
+==== Tabular form
+
+A table with the role `[.links]`. The first row is the header. The first column holds the source element as an xref; every other column is headed by a link type and holds targets:
+
+[source,asciidoc]
+----
+[.links]
+|===
+|Source |owned-by |addresses
+
+|<<adr-007>>
+|<<sh-architect>>
+|<<need-async-messaging>>
+
+|<<adr-009>>
+|<<sh-architect>>
+|
+|===
+----
+
+Use this form for elements that are list items or table rows, such as §1.1 requirements, inputs, or §11 risks and debts.
+
+Write each link once: a link in the local form must not be repeated in a table.
+
+== Template blocks
+
+=== §1.3 Stakeholders with links
+
+[source,asciidoc]
+----
+=== Stakeholders
+
+[options="header",cols="1,2,2"]
+|===
+|Role/Name|Contact|Expectations
+| [[sh-cfo]]CFO | finance@example.com | Cost and ROI decisions
+| [[sh-ops]]Head of Operations | ops@example.com | Reliability and operability
+| [[sh-architect]]Software Architect | arch@example.com | Technical direction and maintainability
+|===
+----
+
+=== §9 Architecture decision with links (local form)
+
+[source,asciidoc]
+----
+[[adr-001]]
+=== ADR-001: <Title>
+
+Date:: YYYY-MM-DD
+
+Status:: Accepted
+
+[.links]
+owned-by:: <<sh-role>>
+addresses:: <<need-id>>
+
+==== Context
+
+...
+
+==== Decision
+
+...
+
+==== Consequences
+
+...
+----
+
+=== §9 Inputs owned by stakeholders
+
+Inputs are often written in the decision's Context section, then linked:
+
+[source,asciidoc]
+----
+==== Context
+
+Evaluation criteria and weights:
+
+* [[in-001-cost]]**Cost**: weight 40% (provided by <<sh-cfo>>)
+* [[in-001-ops]]**Operability**: weight 35% (provided by <<sh-ops>>)
+* [[in-001-throughput]]**Throughput**: weight 25% (provided by <<sh-architect>>)
+
+[.links]
+uses-input:: <<in-001-cost>>, <<in-001-ops>>, <<in-001-throughput>>
+----
+
+The inputs are list items, so their owners are linked in the tabular form:
+
+[source,asciidoc]
+----
+[.links]
+|===
+|Source |owned-by
+
+|<<in-001-cost>> |<<sh-cfo>>
+|<<in-001-ops>> |<<sh-ops>>
+|<<in-001-throughput>> |<<sh-architect>>
+|===
+----
+
+=== §11 Risks with links (tabular form)
+
+[source,asciidoc]
+----
+* [[risk-001]]**Broker single point of failure**: ...
+* [[risk-002]]**Third-party API rate limits**: ...
+
+[.links]
+|===
+|Source |owned-by
+
+|<<risk-001>> |<<sh-ops>>
+|<<risk-002>> |<<sh-architect>>
+|===
+----

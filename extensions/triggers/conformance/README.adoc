@@ -1,0 +1,53 @@
+= triggers conformance cases
+
+Each case tests the semantics of the `triggers` SPEC through one binding. The cases of the AsciiDoc binding live in `asciidoc/`. Each case directory holds:
+
+* `document.adoc`: the input, written in the binding's notation. Many cases are deliberately invalid.
+* `expected.json`: what a conforming implementation reports for that document at the evaluation date.
+
+== expected.json
+
+[source,json]
+----
+{
+  "date": "2026-10-01",
+  "errors": ["T15"],
+  "warnings": ["T2"],
+  "due": [{"subscriber": "adr-001", "date": "2026-07-01"}],
+  "missing_revisits": [
+    {"event": "ev-001", "subscriber": "adr-001", "scope": "whole", "responsible": "sh-cfo", "due": "2026-07-01"}
+  ],
+  "open": ["rv-002"],
+  "overdue": ["rv-002"]
+}
+----
+
+[cols="1,3"]
+|===
+|Key |Meaning
+
+|`date`
+|The evaluation date.
+
+|`errors`
+|Rule IDs with at least one MUST violation (`L…` and `T…`).
+
+|`warnings`
+|Rule IDs with at least one SHOULD violation.
+
+|`due`
+|Time subscriptions that are due (manual procedure step 1). `date` is the date the event must carry.
+
+|`missing_revisits`
+|Matches that have no revisit yet (step 2). `scope` is `whole` or a sorted list of input IDs; `responsible` is the role (T10); `due` follows T11.
+
+|`open`, `overdue`
+|Revisit IDs (step 4).
+|===
+
+== Comparison
+
+* Every key is compared, and a key that is absent means an empty list.
+* `errors` and `warnings` are compared as sets of rule IDs. How many times a rule fires, and the messages, do not matter.
+* Lists of objects and lists of IDs are compared as sets; order does not matter.
+* Binding-notation problems (rule `B1` in the reference checker) are not part of conformance; no case contains them.

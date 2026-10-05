@@ -1,0 +1,14 @@
+{
+  "date": "2026-07-01",
+  "errors": [],
+  "warnings": [],
+  "due": [
+    {
+      "subscriber": "adr-001",
+      "date": "2026-07-01"
+    }
+  ],
+  "missing_revisits": [],
+  "open": [],
+  "overdue": []
+}

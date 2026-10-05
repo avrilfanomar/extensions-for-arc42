@@ -2,11 +2,418 @@
 :ext-version: 0.1.0
 :arc42-version: 9.0
 
-Attaches to:: §9 Architecture Decisions (09_architecture_decisions.adoc), §11 Risks and Technical Debts
+Attaches to:: §1.3 Stakeholders (role references through links), §9 Architecture Decisions, §11 Risks and Technical Debts
+Requires:: links 0.1.x
 Status:: Draft
 
 == Motivation
-== Fields
+
+Architecture decisions are made under specific conditions: current stakeholder priorities, known alternatives, stated constraints, and a snapshot of the world. When those conditions change, the decision may need revisiting.
+
+Manual tracking fails at scale. Teams forget to re-evaluate when:
+
+* A stakeholder role changes hands, and the new holder has different priorities or weights.
+* Time passes and assumptions decay.
+* A new technology emerges that could address the same need better.
+* A vendor announces end-of-life for a chosen component.
+
+This extension provides **event-driven decision revisits**: a publish/subscribe mechanism over the typed links of the `links` extension.
+
+Key properties:
+
+* **Explicit subscriptions**: decisions, risks and debts declare what changes trigger a revisit.
+* **Routing via links**: events are routed through the dependency graph, so a stakeholder change reaches only the decisions that depend on that stakeholder's input.
+* **Append-only log**: all events are recorded. Closing a revisit does not delete the event.
+* **Accountability**: each revisit assigns a responsible role, resolved to its current holder when the revisit opens.
+* **Extensible catalog**: core event types cover time, stakeholder changes, and emerging alternatives. Projects define custom types for vendor end-of-life, cost changes, regulatory shifts, and so on.
+
+The model is **separate from implementation**: this specification defines semantics and rules; a binding defines notation; implementations provide automation.
+
+== Model
+
+=== Subscriber
+
+A **subscriber** is an element that can be revisited when something it depends on changes. Subscriber kinds: `decision`, `risk`, `debt`.
+
+Each subscriber has a **baseline date**: when it was decided, or when the risk or debt was assessed.
+
+A subscriber is **active at date _d_** unless some decision that carries a `supersedes` link to it has a baseline on or before _d_. The successor's baseline is the date the supersession takes effect; `links` itself carries no dates. A decision that supersedes a subscriber therefore SHOULD carry a baseline: without one the supersession has no effective date, and the subscriber is never deactivated (T16).
+
+=== Event type
+
+An **event type** defines a class of change that can trigger revisits. Each type has:
+
+[cols="1,3"]
+|===
+|Attribute |Description
+
+|`name`
+|Unique identifier, such as `time.elapsed` or `stakeholder.changed`.
+
+|`mode`
+|Either *published* or *evaluated*. Published events are recorded by a person or system when the change happens. Evaluated events are produced by a procedure (such as "is this decision now twelve months old?") and recorded when found due.
+
+|`subject kind`
+|The kind of element the event is about (such as `stakeholder-role` or `need`).
+
+|`payload`
+|Attributes the event carries, each required or optional.
+
+|`routing`
+|One or more routes from a subscriber to the subject (see <<routing>>).
+
+|`default response`
+|The default responsible role and the time allowed (an ISO 8601 duration). The scope comes from the route.
+
+|`publisher guidance`
+|Who publishes this event type, what evidence is required, and when it should be published.
+|===
+
+[[routing]]
+=== Routing
+
+A **route** is a sequence of zero or more link types, followed from the subscriber, together with a **scope**:
+
+* The route reaches the event subject if following the link types in order from the subscriber arrives at the subject. The empty route (written *self*) reaches the subscriber itself.
+* Scope `whole` means the entire subscriber is to be re-evaluated.
+* Scope `inputs` means only the inputs reached on the route's first step are to be re-confirmed. It is allowed only when the first link type is `uses-input`.
+
+A **response responsible** is one of: *owner* (the role the subscriber is `owned-by`), *subject* (the event subject, which must then be a `stakeholder-role`), or a named role.
+
+=== Event
+
+An **event** is an entry in the document's logical, append-only event log. Once published, events are immutable. A mistaken event is handled by closing its revisits as `dismissed`.
+
+Each event has:
+
+[cols="1,3"]
+|===
+|Field |Description
+
+|`id`
+|Unique among events in the document.
+
+|`type`
+|The event type name.
+
+|`date`
+|The date the event takes effect. For a stakeholder change, this is the handover date. For an evaluated event, it is the date the condition became true, not the date someone noticed.
+
+|`subject`
+|An element ID, or a **topic** (see below).
+
+|`payload`
+|Key-value pairs as defined by the event type.
+
+|`publisher`
+|Who or what published this event (a person, role, or system).
+|===
+
+=== Topic
+
+A **topic** is a routing key that lets a publisher outside the document publish events without knowing internal element IDs.
+
+For example, a technology radar publishes an `alternative.emerged` event whose subject is the topic _messaging_. The document's **topic map** states that the topic _messaging_ stands for the document's need for asynchronous messaging. An event whose subject is a topic is treated as if it had been published once for each element the topic maps to.
+
+The publisher claims that the candidate covers a need under that topic. The revisit verifies the claim.
+
+A binding that writes topics with a scheme-like prefix reserves that prefix; it is then not an external URI under `links` rule L3.
+
+=== Subscription
+
+A **subscription** declares that a subscriber wants to be notified of certain events. Each subscription specifies:
+
+* The subscriber.
+* The event type.
+* Parameters, where the type requires them (such as a period for a time-based subscription).
+* Optionally, a **subject filter**: an element the event subject must resolve to.
+* Optionally, overrides for the responsible role or the time allowed.
+
+Subscriptions are always explicit. The routing defined in the event type decides which events reach which subscribers, but a subscriber must still subscribe to that type.
+
+=== Revisit
+
+A **revisit** is the obligation created when an event reaches a subscriber.
+
+Each revisit has:
+
+[cols="1,3"]
+|===
+|Field |Description
+
+|`id`
+|Unique among revisits in the document.
+
+|`event`
+|The event that triggered this revisit.
+
+|`subscriber`
+|The decision, risk, or debt being revisited.
+
+|`scope`
+|Either `whole` (re-evaluate the entire subscriber) or a list of specific `input` elements.
+
+|`responsible`
+|The stakeholder role accountable for closing this revisit. Resolved to its current holder when the revisit opens.
+
+|`opened`
+|The date the revisit was opened (often the event date, but later if the event was processed late).
+
+|`due`
+|The date by which the revisit should be closed (rule T11).
+
+|`status`
+|`open` or `closed`. A revisit is closed exactly when it has an outcome.
+
+|`outcome`
+|(When closed) One of: `confirmed`, `amended`, `superseded`, `dismissed`.
+
+|`closed`
+|(When closed) The date the revisit was closed.
+
+|`rationale`
+|(When closed) Why this outcome. Required for `dismissed`.
+
+|`successor`
+|(For `superseded`) The decision that replaces the subscriber.
+
+|`effect`
+|(For `amended` with inputs scope) Either `unchanged` (ranking or choice not affected) or `reopened`.
+
+|`follows`
+|(For a follow-on revisit, see T15) The inputs-scoped revisit it follows.
+|===
+
+== Event type catalog
+
+=== Core event types
+
+[cols="1,1,2,2,2"]
+|===
+|Type |Mode |Subject |Routes (link types → scope) |Default response
+
+|`time.elapsed`
+|evaluated
+|The subscriber itself
+|self → whole. +
+Parameter: either a period (an ISO 8601 duration, repeating) or a single target date.
+|responsible: owner; due: P30D
+
+|`stakeholder.changed`
+|published
+|`stakeholder-role`
+|`uses-input`, `owned-by` → inputs; +
+`owned-by` → whole. +
+Both may match; they merge into one revisit (T8).
+|responsible: subject (the role, now held by the *new* holder); due: P30D
+
+|`alternative.emerged`
+|published
+|`need`, by element or topic
+|`addresses` → whole
+|responsible: owner; due: P60D
+|===
+
+=== Payloads
+
+**`stakeholder.changed`**:
+
+* `previous` (required): previous holder (name or identifier).
+* `new` (required): new holder.
+* `reason` (optional): why the change happened.
+
+The event `date` is the handover date.
+
+**`alternative.emerged`**:
+
+* `candidate` (required): name or identifier of the alternative.
+* `category` (required): one of `technology`, `software`, `hardware`, `service`, `other`.
+* `claim` (required): how it covers the need (brief statement).
+* `source` (required): where this came from (tech radar, vendor announcement, research).
+* `maturity` (optional): `experimental`, `stable`, `mature`.
+
+**`time.elapsed`** has no payload.
+
+=== Custom event types
+
+Projects and other extensions may define custom event types. Custom names use the namespaced form `<namespace>:<name>` of the `links` extension. A custom type is defined in the document with every attribute of an event type; its routes use the grammar of <<routing>>. In v0.1, custom types MUST be *published*: evaluated types need a procedure that only core types define.
+
+Non-normative candidates for future core types:
+
+* `constraint.changed`: a constraint from §2 is relaxed or tightened.
+* `quality-goal.reprioritized`: weights on §1.2 goals change.
+* `assumption.invalidated`: an assumption underlying a decision turns out false.
+* `vendor.end-of-life`: a vendor announces end-of-life for a product or service.
+* `cost.changed`: pricing for a chosen component changes significantly.
+
 == Rules
-== Example
+
+The keywords MUST, MUST NOT and SHOULD in this section are as defined in BCP 14 (RFC 2119, RFC 8174). A violated MUST is an error; a violated SHOULD is a warning.
+
+=== Subscriptions and ownership
+
+[cols="1,4"]
+|===
+|Rule |Requirement
+
+|**T1**
+|Every subscriber MUST be of kind `decision`, `risk` or `debt`, and MUST have a baseline date. Every subscription MUST name a core event type or a custom type defined in the document. A custom type definition MUST be complete, published, and use valid routes; if its default response is *subject*, its subject kind MUST be `stakeholder-role`. A subscriber MUST have at most one subscription per event type. A subscriber MUST have at most one `time.elapsed` subscription, and it MUST carry exactly one parameter: a period or a target date.
+
+|**T2**
+|Every subscriber SHOULD have a `time.elapsed` subscription as a backstop, ensuring periodic re-evaluation even when no other events occur.
+
+|**T3**
+|Every subscriber MUST have an `owned-by` link, or else each of its subscriptions whose responsible is *owner* MUST override the responsible role. This applies to §11 risks and debts as well.
+|===
+
+=== Events
+
+[cols="1,4"]
+|===
+|Rule |Requirement
+
+|**T4**
+|Event IDs MUST be unique among events, and revisit IDs unique among revisits. The event log is append-only: once published, an event MUST NOT be modified or deleted. After a revisit is recorded, only its closing fields (`status`, `outcome`, `closed`, `rationale`, `successor`, `effect`) may change. +
+_Except for ID uniqueness, T4 concerns the document's history. It cannot be checked from a single revision._
+
+|**T5**
+|An event's type MUST be a core type or a defined custom type. Its `subject` MUST resolve to an element of the kind the type allows, or to a topic in the topic map. For `time.elapsed` the subject is the subscriber. Every required payload attribute MUST be present.
+
+|**T6**
+|An event's `date` is the date the event takes effect. For `stakeholder.changed` this is the handover date; there is no separate "effective" field.
+|===
+
+=== Matching
+
+[cols="1,4"]
+|===
+|Rule |Requirement
+
+|**T7**
+|Event _e_ reaches subscriber _s_ when **all** of these hold: +
+(a) _s_ is active at _e_.date; +
+(b) _s_ subscribes to _e_.type; +
+(c) one of the type's routes, followed from _s_, reaches _e_.subject (or an element its topic maps to); +
+(d) if the subscription has a subject filter, that element is the one reached; +
+(e) _e_.date ≥ _s_.baseline.
+
+|**T8**
+|An event that reaches a subscriber via several routes produces **one** revisit. Its scope is the union of the matched scopes, and `whole` absorbs any inputs scope. A recorded revisit's scope MUST equal that merged scope. +
+Example: if a role owns both the decision and one of its inputs, a `stakeholder.changed` event for that role produces one revisit with scope `whole`, not two revisits.
+
+|**T9**
+|At most one revisit MUST exist per (_event_, _subscriber_) pair, except for the follow-on revisit of rule T15.
+|===
+
+=== Revisit lifecycle
+
+[cols="1,4"]
+|===
+|Rule |Requirement
+
+|**T10**
+|A revisit's `responsible` MUST be the subscription's override if there is one, otherwise the type's default. The role is resolved to its current holder (the person or team named in §1.3) at the moment the revisit opens.
+
+|**T11**
+|A revisit's `due` MUST be _event_.date + response duration (the subscription's override if there is one, otherwise the type's default). It MUST NOT be computed from the `opened` date. The follow-on revisit of rule T15 is the only exception.
+
+|**T12**
+|A revisit is **overdue** when the evaluation date is strictly after `due` and the revisit is still `open`.
+|===
+
+=== Dates and durations
+
+[cols="1,4"]
+|===
+|Rule |Requirement
+
+|**T13**
+|Dates use ISO 8601 `YYYY-MM-DD` format. Durations are restricted to `PnY`, `PnM`, `PnW`, `PnD`, which may be combined in that order (such as `P1Y6M`). There is no time-of-day component. +
+Durations are added as: years first, then months (clamping the day to the month's end if needed: 2026-01-31 + P1M = 2026-02-28), then weeks, then days.
+|===
+
+=== Time evaluation
+
+[cols="1,4"]
+|===
+|Rule |Requirement
+
+|**T14**
+|For the `time.elapsed` subscription of subscriber _s_, evaluated at date _d_: +
+(a) The **anchor** at _d_ is the later of _s_.baseline and the `closed` date of the most recent **whole-scope** revisit on _s_ closed on or before _d_ as `confirmed` or `amended`. Inputs-scoped revisits do not reset the anchor. +
+(b) The **due date** is anchor + period, or the target date for the single-date form. +
+(c) The subscription is **due** when _d_ ≥ due date (inclusive), _s_ is active at _d_, and no `time.elapsed` event for _s_ is dated on or after the anchor (for the single-date form: on or after the target date). +
+(d) Whoever evaluates and finds the subscription due MUST record a `time.elapsed` event dated on the due date, so every revisit traces back to an event. +
+(e) A recorded `time.elapsed` event MUST be dated on the due date computed at its own date. For this computation the anchor counts only whole-scope revisits closed strictly before the event's date, so that a revisit closed on that date does not move the due date of the event that opened it.
+|===
+
+=== Outcomes
+
+[cols="1,4"]
+|===
+|Rule |Requirement
+
+|**T15**
+|Outcomes form a closed set: `confirmed`, `amended`, `superseded`, `dismissed`. A closed revisit MUST have an outcome and a `closed` date. +
+• `confirmed`: the subscriber stands as written. A whole-scope `confirmed` resets the anchor (T14). +
+• `amended`: something changed. A whole-scope `amended` resets the anchor. An inputs-scoped `amended` MUST record `effect`: `unchanged` (ranking or choice not affected) or `reopened`. With `reopened`, a **follow-on** revisit MUST exist: same event and subscriber, scope `whole`, `follows` naming the inputs-scoped revisit, responsible *owner*, and due = the inputs-scoped revisit's `closed` date + the response duration. +
+• `superseded`: the subscriber is replaced by a `successor` decision that carries a `supersedes` link to the subscriber. This outcome MUST NOT be used unless the successor exists and has that link. +
+• `dismissed`: the event does not apply or the claim does not hold. It MUST include a `rationale`. It MUST NOT be used for evaluated event types such as `time.elapsed`, because the timer would fire again immediately.
+
+|**T16**
+|When a subscriber becomes inactive, every revisit still open on it MUST be closed with outcome `superseded`. An open revisit on a subscriber that is inactive at the evaluation date violates this rule. A decision that supersedes a subscriber SHOULD carry a baseline; if it does not, the supersession never takes effect and the subscriber keeps being revisited (a warning).
+
+|**T17**
+|Every revisit MUST be either a revisit for an (_event_, _subscriber_) pair that satisfies T7, or a follow-on revisit as defined in T15.
+|===
+
+=== Section 11 usage
+
+Risks and technical debts may be subscribers, enabling periodic re-assessment. Overdue revisits SHOULD be listed as risks in §11, to make them visible in risk reviews.
+
+== Manual procedure
+
+This is the reference semantics, assuming no tooling. It is performed at an evaluation date _d_.
+
+1. **Evaluate time subscriptions**: for each `time.elapsed` subscription, compute the anchor and the due date (T14). If it is due at _d_, record a `time.elapsed` event with the subscriber as subject, dated on the due date.
+
+2. **Match events**: for each event in the log, apply the matching rule (T7) to every subscriber, and merge the routes per subscriber (T8). For each match, check whether a revisit already exists for that (event, subscriber) pair. If not, it is **missing**.
+
+3. **Open revisits**: for each missing revisit, determine the responsible role (T10) and resolve it to its current holder, compute `due` (T11), and record the revisit as `open`.
+
+4. **List open and overdue revisits**: report all revisits that are `open`. Flag those where _d_ > `due` as overdue (T12).
+
+5. **Close revisits**: when the responsible person completes a revisit, record the outcome, rationale, and closed date. If the outcome is `amended` with inputs scope, also record `effect`. If `effect` is `reopened`, record the follow-on revisit (T15).
+
+This procedure is the ground truth. Implementations may automate steps or reorder them for efficiency, but they MUST produce the same results.
+
+== Conformance and bindings
+
+A **binding** maps this model onto a representation: how subscriptions, events, revisits, the topic map and custom types are written. This specification does not mandate a binding.
+
+This extension's v0.1.0 release includes one normative binding:
+
+* **AsciiDoc** (`template.adoc`): notation for arc42 documents written in AsciiDoc.
+
+A **conforming document** satisfies, at its evaluation date, the checkable parts of rules T1–T17, and satisfies the `links` extension rules (since `triggers` depends on `links 0.1.x`).
+
+A **conforming implementation for a given binding** is a tool or process that, for every conformance case of that binding and at the case's evaluation date, reports:
+
+* The same rule violations, as errors and warnings (by rule ID).
+* The same set of due time subscriptions (step 1 of the manual procedure).
+* The same set of missing revisits, with their scope, responsible role and due date (step 2 and 3).
+* The same set of open revisits.
+* The same set of overdue revisits.
+
+Implementations may provide additional automation (such as sending notifications, integrating with external systems, or generating reports), but they MUST NOT alter the semantics defined here.
+
 == Limitations
+
+* **Single document**: events and revisits do not span multiple documents.
+* **No retiring without successor**: a decision must be superseded by another decision. There is no way to retire a decision as "no longer applicable" without a successor.
+* **Flat topics**: the topic namespace is flat. There is no hierarchy or wildcard matching.
+* **Published custom types only**: custom event types cannot be evaluated.
+* **Notification mechanism unspecified**: how responsible roles are notified is left to implementations.
+* **Language**: this version covers English (EN) documents only.
+
+Extensions that need these capabilities must define them in ways compatible with the core model.

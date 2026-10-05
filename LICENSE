@@ -6,6 +6,9 @@ This work is licensed under the Creative Commons Attribution-ShareAlike
 below and is also available at:
 https://creativecommons.org/licenses/by-sa/4.0/legalcode
 
+EXCEPTION: Code in the implementations/ directory is licensed under the
+Apache License 2.0. See implementations/*/LICENSE for details.
+
 -----------------------------------------------------------------------
 Attribution
 -----------------------------------------------------------------------

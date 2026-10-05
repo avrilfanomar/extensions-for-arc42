@@ -1,0 +1,67 @@
+= Open revisit left on a superseded subscriber
+
+== Introduction and Goals
+
+Extensions used: links v0.1.0, triggers v0.1.0
+
+=== Stakeholders
+
+[options="header",cols="1,2,2"]
+|===
+|Role/Name|Contact|Expectations
+| [[sh-arch]]Architect | architect@example.com | -
+|===
+
+=== Requirements Overview
+
+* [[need-x]]Asynchronous messaging
+* [[need-y]]Reporting
+
+[.links]
+|===
+|Source |owned-by
+
+|<<need-x>> |<<sh-arch>>
+|<<need-y>> |<<sh-arch>>
+|===
+
+== Architecture Decisions
+
+[[adr-001]]
+=== ADR-001: Decision 1
+
+[.links]
+owned-by:: <<sh-arch>>
+addresses:: <<need-x>>
+
+[.triggers]
+baseline:: 2026-01-01
+on time.elapsed:: every P12M
+on alternative.emerged::
+
+
+[[adr-002]]
+=== ADR-002: Decision 2
+
+[.links]
+owned-by:: <<sh-arch>>
+supersedes:: <<adr-001>>
+
+[.triggers]
+baseline:: 2026-06-01
+on time.elapsed:: every P12M
+
+
+=== Revisit Triggers
+
+[.triggers-events]
+|===
+|ID |Date |Type |Subject |Payload |Published by
+|ev-001 |2026-05-01 |alternative.emerged |need-x |candidate: NATS; category: software; claim: covers it; source: radar |Radar
+|===
+
+[.triggers-revisits]
+|===
+|ID |Event |Subscriber |Scope |Responsible |Opened |Due |Outcome |Closed |Rationale
+|rv-001 |ev-001 |adr-001 |whole |sh-arch |2026-05-01 |2026-06-30 | | |
+|===

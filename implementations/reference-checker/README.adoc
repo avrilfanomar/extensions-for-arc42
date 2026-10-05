@@ -1,0 +1,100 @@
+= arc42ext reference checker
+:toc:
+
+A non-normative reference implementation of the `links` and `triggers` extensions, for documents written in their AsciiDoc binding. The SPECs define the semantics; this tool is one way to apply them, and the conformance cases under `extensions/*/conformance/` are what it is tested against.
+
+== Features
+
+* Checks `links` rules L1 and L3–L8 (L2 concerns history and cannot be checked from one revision).
+* Checks the checkable parts of `triggers` rules T1–T17, as errors (MUST) and warnings (SHOULD).
+* Runs the manual procedure of the `triggers` SPEC at a given date: due time subscriptions, missing revisits, open and overdue revisits.
+* Follows `include::` directives and ignores comments, listing and literal blocks, and `ifdef::arc42help[]` blocks.
+* Read-only: the document stays the record of truth. `--suggest` prints rows to paste.
+* Python 3.10+, standard library only.
+
+Problems with the notation itself (a table with the wrong columns, an `include::` that cannot be found) are reported as rule `B1`.
+
+== Installation
+
+[source,bash]
+----
+cd implementations/reference-checker
+pip install -e .
+----
+
+== Usage
+
+=== Validate a document
+
+[source,bash]
+----
+arc42ext validate path/to/document.adoc [--date YYYY-MM-DD]
+----
+
+The date (default: today) matters for T16. Exit codes:
+
+* `0`: no errors (warnings may be printed)
+* `1`: one or more errors
+
+=== Check revisit status
+
+[source,bash]
+----
+arc42ext status path/to/document.adoc [--date YYYY-MM-DD] [--json] [--suggest]
+----
+
+* `--date`: evaluation date (default: today).
+* `--json`: output in the shape of the conformance `expected.json`, plus the detailed findings.
+* `--suggest`: print event and revisit rows ready to paste.
+
+Exit codes:
+
+* `0`: no action needed
+* `2`: due time subscriptions, missing revisits, or overdue revisits
+
+== Example
+
+[source]
+----
+$ arc42ext validate extensions/triggers/EN/example.adoc --date 2026-10-04
+No rule violations.
+
+$ arc42ext status extensions/triggers/EN/example.adoc --date 2026-10-04
+Status at 2026-10-04
+
+Due time subscriptions:
+  none
+
+Missing revisits:
+  none
+
+Open revisits:
+  rv-004
+
+Overdue revisits:
+  rv-004
+----
+
+This is the same result as the example's hand-written "Expected evaluation at 2026-10-04" appendix.
+
+== Layout
+
+The modules mirror the separation of concept and binding:
+
+* `model.py`, `dates.py`, `catalog.py`, `links.py`, `triggers.py`: the concept. They know nothing about AsciiDoc (enforced by `tests/test_layering.py`).
+* `binding_asciidoc.py`: reads the AsciiDoc notation into the model.
+* `report.py`, `__main__.py`: the command line.
+
+== Testing
+
+[source,bash]
+----
+cd implementations/reference-checker
+python3 -m unittest discover -s tests -v   # or: pytest
+----
+
+The suite runs every conformance case, checks that both examples are clean and that the triggers example's status matches its appendix, and checks that removing all extension markup leaves plain arc42.
+
+== License
+
+Apache License 2.0. See link:LICENSE[LICENSE].

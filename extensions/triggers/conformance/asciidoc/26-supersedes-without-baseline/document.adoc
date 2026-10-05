@@ -1,0 +1,35 @@
+= Superseding decision without a baseline
+
+The successor adr-002 supersedes the subscriber adr-001 but has no baseline, so the
+supersession has no effective date and adr-001 is never deactivated (T16, warning).
+
+== Introduction and Goals
+
+Extensions used: links v0.1.0, triggers v0.1.0
+
+=== Stakeholders
+
+[options="header",cols="1,2,2"]
+|===
+|Role/Name|Contact|Expectations
+| [[sh-arch]]Architect | architect@example.com | -
+|===
+
+== Architecture Decisions
+
+[[adr-001]]
+=== ADR-001: Decision 1
+
+[.links]
+owned-by:: <<sh-arch>>
+
+[.triggers]
+baseline:: 2026-01-01
+on time.elapsed:: every P12M
+
+[[adr-002]]
+=== ADR-002: Replacement for ADR-001
+
+[.links]
+owned-by:: <<sh-arch>>
+supersedes:: <<adr-001>>

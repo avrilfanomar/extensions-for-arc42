@@ -1,0 +1,29 @@
+= Undeclared custom link type
+
+== Introduction and Goals
+
+Extensions used: links v0.1.0
+
+=== Stakeholders
+
+[options="header",cols="1,2,2"]
+|===
+|Role/Name|Contact|Expectations
+| [[sh-arch]]Architect | architect@example.com | -
+|===
+
+== Architecture Decisions
+
+[[adr-001]]
+=== ADR-001: Decision 1
+
+[.links]
+owned-by:: <<sh-arch>>
+acme:implements:: <<adr-002>>
+
+
+[[adr-002]]
+=== ADR-002: Decision 2
+
+[.links]
+owned-by:: <<sh-arch>>

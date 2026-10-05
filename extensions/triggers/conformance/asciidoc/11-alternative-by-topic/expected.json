@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-01",
+  "errors": [],
+  "warnings": [],
+  "due": [],
+  "missing_revisits": [
+    {
+      "event": "ev-001",
+      "subscriber": "adr-001",
+      "scope": "whole",
+      "responsible": "sh-arch",
+      "due": "2026-06-30"
+    }
+  ],
+  "open": [],
+  "overdue": []
+}
