@@ -32,6 +32,8 @@ it never renames, removes or replaces one.
 
 link:implementations/reference-checker/[reference-checker]:: Python 3.10+ command-line tool for validating documents and checking revisit status, with a local web page that shows what needs action and how elements are linked. Standard library only, Apache-2.0 licensed.
 
+image::docs/reference-checker-demo.gif[Reference checker web interface demonstration showing dashboard, elements list, and element details with links and revisits]
+
 == Adoption
 
 Declare usage in §1 of your document, e.g.:
