@@ -94,6 +94,16 @@ class TestLinksRules(unittest.TestCase):
         self.assertEqual(g.follow("adr-001", ("uses-input", "owned-by")), [("in-001", "sh-cfo")])
         self.assertEqual(g.follow("adr-001", ()), [(None, "adr-001")])
 
+    def test_sources_are_the_derived_inverse(self):
+        g = graph([ADR1, ("adr-002", "decision"), ARCH],
+                  [("adr-001", "owned-by", "sh-arch"), ("adr-002", "owned-by", "sh-arch"),
+                   ("adr-002", "supersedes", "adr-001"), ("adr-002", "relates-to", "https://example.com")])
+        self.assertEqual([(l.source, l.type) for l in g.sources("sh-arch")],
+                         [("adr-001", "owned-by"), ("adr-002", "owned-by")])
+        self.assertEqual([l.source for l in g.sources("adr-001", "supersedes")], ["adr-002"])
+        self.assertEqual(g.sources("adr-001", "owned-by"), [])
+        self.assertEqual(g.superseded_by("adr-001"), ["adr-002"])
+
 
 if __name__ == "__main__":
     unittest.main()

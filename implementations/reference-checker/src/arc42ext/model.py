@@ -144,6 +144,8 @@ class Finding:
 class Document:
     """Everything a binding extracts from one document."""
     source: str = ""
+    title: str = ""
+    files: list = field(default_factory=list)  # every file read: the source and what it includes
     extensions: dict = field(default_factory=dict)  # name -> version
     elements: list = field(default_factory=list)
     links: list = field(default_factory=list)

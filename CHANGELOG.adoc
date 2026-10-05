@@ -10,6 +10,7 @@
 === Implementations
 
 * **reference-checker 0.1.0**: Python 3.10+ CLI tool (`arc42ext`) for validating links and triggers extensions, with `validate` and `status` commands. Apache-2.0 licensed.
+** `serve` command: a local, read-only web page with a revisit dashboard (overdue, due, missing and open, filterable by responsible role, with rows to paste) and an element catalogue (links in both directions, subscriptions, revisit history). It reloads when the document changes.
 
 === Documentation
 

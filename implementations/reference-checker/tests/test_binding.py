@@ -2,10 +2,12 @@
 
 import tempfile
 import unittest
+from dataclasses import replace
+from datetime import date
 from pathlib import Path
 
 from arc42ext import binding_asciidoc
-from arc42ext.model import WHOLE
+from arc42ext.model import WHOLE, Event, Revisit
 
 
 def read(text, extra_files=None):
@@ -24,6 +26,11 @@ class TestBinding(unittest.TestCase):
         self.assertEqual([e.id for e in doc.elements], ["rq-001"])
         self.assertTrue(doc.elements[0].location.file.endswith("part.adoc"))
         self.assertEqual(doc.elements[0].location.line, 3)
+
+    def test_document_title_and_files_read(self):
+        doc = read("= The Title\n\ninclude::part.adoc[]\n\n= Not the title\n", {"part.adoc": "== Part\n"})
+        self.assertEqual(doc.title, "The Title")
+        self.assertEqual([Path(f).name for f in doc.files], ["doc.adoc", "part.adoc"])
 
     def test_missing_include_is_reported(self):
         doc = read("= Doc\n\ninclude::nowhere.adoc[]\n")
@@ -180,6 +187,29 @@ on stakeholder.changed:: sometimes
 """)
         self.assertEqual(doc.revisits[0].successor, "adr-002")
         self.assertEqual(doc.revisits[1].effect, "reopened")
+
+    def test_next_id_keeps_padding_and_skips_other_ids(self):
+        next_id = binding_asciidoc.next_id
+        self.assertEqual(next_id(["ev-001", "ev-009", "ev-003"], "ev-"), "ev-010")
+        self.assertEqual(next_id(["rv-0099"], "rv-"), "rv-0100")
+        self.assertEqual(next_id(["ev-cfo", "rv-007", "ev-2"], "ev-"), "ev-3")
+        self.assertEqual(next_id([], "rv-"), "rv-001")
+
+    def test_written_rows_read_back(self):
+        event = Event("ev-006", "acme:x", date(2026, 10, 28), "adr-007", {"a": "1", "b": "two words"}, "Team")
+        open_revisit = Revisit("rv-006", "ev-006", "adr-007", frozenset({"in-2", "in-1"}), "sh-cfo",
+                               date(2026, 10, 28), date(2026, 11, 27))
+        closed = Revisit("rv-007", "ev-006", "adr-007", WHOLE, "sh-arch", date(2026, 10, 28), date(2026, 11, 27),
+                         "superseded", date(2026, 11, 2), "Replaced.", successor="adr-010", follows="rv-006")
+        doc = read("= Doc\n\n[.triggers-events]\n|===\n|ID |Date |Type |Subject |Payload |Published by\n"
+                   f"{binding_asciidoc.event_row(event)}\n|===\n\n"
+                   "[.triggers-revisits]\n|===\n|ID |Event |Subscriber |Scope |Responsible |Opened |Due |Outcome "
+                   f"|Closed |Rationale\n{binding_asciidoc.revisit_row(open_revisit)}\n"
+                   f"{binding_asciidoc.revisit_row(closed)}\n|===\n")
+        self.assertEqual(doc.notation_findings, [])
+        self.assertEqual(doc.events, [replace(event, location=doc.events[0].location)])
+        self.assertEqual(doc.revisits, [replace(open_revisit, location=doc.revisits[0].location),
+                                        replace(closed, location=doc.revisits[1].location)])
 
     def test_table_role_on_description_list_is_reported_not_crashing(self):
         for role in ("vocabulary", "triggers-events", "triggers-revisits"):

@@ -5,17 +5,15 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from . import binding_asciidoc, links, report, triggers
+from . import report
+from .analysis import analyze
 from .dates import parse_date
-from .links import LinkGraph
 
 
 def check(path, on: date):
     """Read a document and return (findings, status). Shared by the CLI and the tests."""
-    doc = binding_asciidoc.read(path)
-    graph = LinkGraph.from_document(doc)
-    findings = list(doc.notation_findings) + links.validate(doc) + triggers.validate(doc, on, graph)
-    return findings, triggers.status(doc, on, graph)
+    analysis = analyze(path, on)
+    return analysis.findings, analysis.status
 
 
 def main(argv=None):
@@ -33,16 +31,30 @@ def main(argv=None):
     status_parser.add_argument("--json", action="store_true", help="Output JSON")
     status_parser.add_argument("--suggest", action="store_true", help="Print table rows ready to paste")
 
+    serve_parser = subparsers.add_parser("serve", help="Browse revisit status and elements in a local web page "
+                                                       "that reloads when the document changes")
+    serve_parser.add_argument("document", type=Path, help="Path to .adoc document")
+    serve_parser.add_argument("--date", help="Evaluation date (YYYY-MM-DD, default: today, as it changes)")
+    serve_parser.add_argument("--host", default="127.0.0.1", help="Address to listen on (default: 127.0.0.1)")
+    serve_parser.add_argument("--port", type=int, default=8042, help="Port (default: 8042; 0 picks a free one)")
+    serve_parser.add_argument("--open", action="store_true", help="Open the page in a browser")
+    serve_parser.add_argument("--editor-url", metavar="TEMPLATE",
+                              help="Link source locations to an editor, e.g. 'vscode://file{path}:{line}'")
+
     args = parser.parse_args(argv)
-    on = date.today()
+    fixed = None
     if args.date:
-        on = parse_date(args.date)
-        if on is None:
+        fixed = parse_date(args.date)
+        if fixed is None:
             parser.error(f"invalid --date '{args.date}', expected YYYY-MM-DD")
     if not args.document.is_file():
         parser.error(f"no such file: {args.document}")
 
-    findings, status = check(args.document, on)
+    if args.command == "serve":
+        from .server import serve  # the HTTP modules load only for this command
+        return serve(args.document, fixed, args.host, args.port, args.editor_url, args.open)
+
+    findings, status = check(args.document, fixed or date.today())
 
     if args.command == "validate":
         print(report.findings_text(findings))

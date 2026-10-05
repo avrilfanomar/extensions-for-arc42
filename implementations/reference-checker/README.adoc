@@ -9,7 +9,8 @@ A non-normative reference implementation of the `links` and `triggers` extension
 * Checks the checkable parts of `triggers` rules T1–T17, as errors (MUST) and warnings (SHOULD).
 * Runs the manual procedure of the `triggers` SPEC at a given date: due time subscriptions, missing revisits, open and overdue revisits.
 * Follows `include::` directives and ignores comments, listing and literal blocks, and `ifdef::arc42help[]` blocks.
-* Read-only: the document stays the record of truth. `--suggest` prints rows to paste.
+* A local web page (`serve`) shows what needs action, by whom and by when, and every element with its links in both directions and its revisit history. It reloads when the document changes.
+* Read-only: the document stays the record of truth. `--suggest` and the web page offer rows to paste.
 * Python 3.10+, standard library only.
 
 Problems with the notation itself (a table with the wrong columns, an `include::` that cannot be found) are reported as rule `B1`.
@@ -52,6 +53,26 @@ Exit codes:
 * `0`: no action needed
 * `2`: due time subscriptions, missing revisits, or overdue revisits
 
+=== Browse status in the browser
+
+[source,bash]
+----
+arc42ext serve path/to/document.adoc [--date YYYY-MM-DD] [--port 8042] [--open] [--editor-url TEMPLATE]
+----
+
+Serves a local, read-only web page at `http://127.0.0.1:8042/`:
+
+* **Dashboard**: overdue revisits, due time subscriptions, missing revisits and open revisits. Each one shows its subscriber, triggering event, scope, responsible role and due date. A role filter answers "what do I owe?". Due and missing items come with the event and revisit rows to append to the document, with the next free `ev-`/`rv-` IDs filled in.
+* **Elements**: every element by arc42 section or by kind, with a text filter. An element's page shows its outgoing links and the links into it. For a subscriber it also shows its subscriptions, its next `time.elapsed` due date and a timeline of the events that reached it and their revisits. For a stakeholder role it shows what is assigned to it.
+
+The page reloads when the document or any file it includes changes. The evaluation date can be changed on the page to look ahead. At a date after today, the suggested rows are marked as a what-if and cannot be copied, because the event log must not record events that have not happened yet.
+
+* `--date`: evaluation date (default: today, following the calendar while the server runs).
+* `--port`: port (default 8042; `0` picks a free one).
+* `--host`: address to listen on (default `127.0.0.1`). The page shows the whole document, so listening on another address prints a warning. On the default address, requests for any host name other than `localhost`, `127.0.0.1` or `[::1]` are refused, so that other web sites cannot read the page.
+* `--open`: open the page in the default browser.
+* `--editor-url`: turn source locations into links to an editor. `+{path}+` is replaced by the absolute, URL-quoted path and `+{line}+` by the line, for example `+vscode://file{path}:{line}+` (VS Code on Linux and macOS; on Windows `+vscode://file/{path}:{line}+`) or `+idea://open?file={path}&line={line}+` (IntelliJ IDEA).
+
 == Example
 
 [source]
@@ -82,8 +103,10 @@ This is the same result as the example's hand-written "Expected evaluation at 20
 The modules mirror the separation of concept and binding:
 
 * `model.py`, `dates.py`, `catalog.py`, `links.py`, `triggers.py`: the concept. They know nothing about AsciiDoc (enforced by `tests/test_layering.py`).
-* `binding_asciidoc.py`: reads the AsciiDoc notation into the model.
+* `binding_asciidoc.py`: reads the AsciiDoc notation into the model, and writes the event and revisit rows to append.
 * `report.py`, `__main__.py`: the command line.
+* `analysis.py`: one analysis of a document at a date, and what the web page shows, as plain data.
+* `pages.py`, `server.py`, `static/`: the web page and its local HTTP server.
 
 == Testing
 
@@ -93,7 +116,7 @@ cd implementations/reference-checker
 python3 -m unittest discover -s tests -v   # or: pytest
 ----
 
-The suite runs every conformance case, checks that both examples are clean and that the triggers example's status matches its appendix, and checks that removing all extension markup leaves plain arc42.
+The suite runs every conformance case, checks that both examples are clean and that the triggers example's status matches its appendix, and checks that removing all extension markup leaves plain arc42. It also checks that the rows the web page suggests, once pasted into the example, leave nothing due or missing.
 
 == License
 

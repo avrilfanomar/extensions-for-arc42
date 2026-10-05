@@ -1,5 +1,6 @@
 """AsciiDoc binding: reads the notation defined in links/EN/template.adoc and
-triggers/EN/template.adoc into the binding-agnostic model.
+triggers/EN/template.adoc into the binding-agnostic model, and writes event and
+revisit rows to append to it.
 
 This is the only module that knows about AsciiDoc. It is line-oriented and does not
 need an AsciiDoc processor. Problems with the notation itself are reported as rule B1;
@@ -68,8 +69,9 @@ def _ids(text: str) -> list:
     return [token.strip() for token in _normalize(text).split(",") if token.strip()]
 
 
-def _load(path: Path, findings: list, seen=()) -> list:
+def _load(path: Path, findings: list, files: list, seen=()) -> list:
     lines = []
+    files.append(str(path))
     for number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         location = Location(str(path), number)
         m = _INCLUDE.match(raw)
@@ -78,7 +80,7 @@ def _load(path: Path, findings: list, seen=()) -> list:
             if target in seen or not target.is_file():
                 findings.append(Finding("B1", f"cannot include '{m.group(1)}'", location))
             else:
-                lines += _load(target, findings, (*seen, target))
+                lines += _load(target, findings, files, (*seen, target))
             continue
         lines.append((raw.rstrip(), location))
     return lines
@@ -130,7 +132,7 @@ class _Reader:
         self.path = path
         self.doc = Document(source=str(path))
         self.findings = self.doc.notation_findings
-        self.lines = _strip(_load(path, self.findings))
+        self.lines = _strip(_load(path, self.findings, self.doc.files))
         self.anchors = []  # (id, title, location, chapter title, is_block)
         self.sections = []  # (level, anchor id or None, title)
         self.blocks = []
@@ -210,6 +212,8 @@ class _Reader:
             if heading:
                 level = len(heading.group(1)) - 1
                 title = heading.group(2).strip()
+                if level == 0 and not self.doc.title:
+                    self.doc.title = title
                 while self.sections and self.sections[-1][0] >= level:
                     self.sections.pop()
                 anchor_id = pending_anchor[0] if pending_anchor else None
@@ -503,3 +507,41 @@ def read(path) -> Document:
     if "triggers" in reader.doc.extensions:
         reader.doc.reserved_schemes.add(TOPIC_SCHEME)
     return reader.build()
+
+
+# --- writing: rows to append to the tables above, the inverse of _read_events and _read_revisits ---
+
+EVENT_PREFIX = "ev-"
+REVISIT_PREFIX = "rv-"
+
+
+def next_id(existing, prefix: str) -> str:
+    """The ID after the highest numbered one with this prefix, keeping its zero-padding."""
+    numbered = [value[len(prefix):] for value in existing
+                if value.startswith(prefix) and re.fullmatch(r"[0-9]+", value[len(prefix):])]
+    if not numbered:
+        return f"{prefix}001"
+    digits = max(numbered, key=int)
+    return f"{prefix}{int(digits) + 1:0{len(digits)}d}"
+
+
+def _row(cells: list) -> str:
+    return "|" + " |".join(cells)
+
+
+def _iso(value) -> str:
+    return value.isoformat() if value else ""
+
+
+def event_row(event: Event) -> str:
+    payload = "; ".join(f"{key}: {value}" for key, value in event.payload.items())
+    return _row([event.id, _iso(event.date), event.type, event.subject, payload, event.publisher])
+
+
+def revisit_row(revisit: Revisit) -> str:
+    scope = WHOLE if revisit.scope == WHOLE else ", ".join(sorted(revisit.scope))
+    closing = [f"{key}: {value}" for key, value in
+               (("effect", revisit.effect), ("follows", revisit.follows), ("successor", revisit.successor)) if value]
+    rationale = " ".join([revisit.rationale] + closing if revisit.rationale else closing)
+    return _row([revisit.id, revisit.event, revisit.subscriber, scope, revisit.responsible, _iso(revisit.opened),
+                 _iso(revisit.due), revisit.outcome or "", _iso(revisit.closed), rationale])

@@ -26,8 +26,10 @@ class LinkGraph:
         self.reserved_schemes.update(namespace_of(v.name) for v in vocabulary if ":" in v.name)
 
         self._out = defaultdict(list)
+        self._in = defaultdict(list)  # derived inverse relations
         for link in self.links:
             self._out[(link.source, link.type)].append(link.target)
+            self._in[link.target].append(link)
 
     @classmethod
     def from_document(cls, doc: Document) -> "LinkGraph":
@@ -63,8 +65,12 @@ class LinkGraph:
             results.extend((first, end) for end in ends)
         return results
 
+    def sources(self, target: str, link_type: Optional[str] = None) -> list:
+        """Links into an element (the derived inverse relation), optionally of one type."""
+        return [link for link in self._in.get(target, []) if link_type is None or link.type == link_type]
+
     def superseded_by(self, element_id: str) -> list:
-        return [link.source for link in self.links if link.type == "supersedes" and link.target == element_id]
+        return [link.source for link in self.sources(element_id, "supersedes")]
 
     def validate(self) -> list:
         findings = []
