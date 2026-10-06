@@ -34,6 +34,8 @@ link:implementations/reference-checker/[reference-checker]:: Python 3.10+ comman
 
 image::docs/reference-checker-demo.gif[Reference checker web interface demonstration showing dashboard, elements list, and element details with links and revisits]
 
+link:implementations/intellij-plugin/[intellij-plugin]:: Plugin for IntelliJ IDEA, PyCharm and the other IntelliJ-based IDEs (2025.3 and later). An arc42 tool window shows each element with its links in both directions and its revisits, reports violations of the links rules, and updates as you type. Apache-2.0 licensed.
+
 == Adoption
 
 Declare usage in §1 of your document, e.g.:

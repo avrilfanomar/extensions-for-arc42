@@ -11,6 +11,7 @@
 
 * **reference-checker 0.1.0**: Python 3.10+ CLI tool (`arc42ext`) for validating links and triggers extensions, with `validate` and `status` commands. Apache-2.0 licensed.
 ** `serve` command: a local, read-only web page with a revisit dashboard (overdue, due, missing and open, filterable by responsible role, with rows to paste) and an element catalogue (links in both directions, subscriptions, revisit history). It reloads when the document changes.
+* **intellij-plugin 0.1.0**: Plugin for IntelliJ-based IDEs 2025.3 and later. An arc42 tool window lists the elements of each document by section or by kind, with their links in both directions, subscriptions and revisits, and navigates to them. It checks links rules L1 and L3–L8 as you type, following `include::` directives. Apache-2.0 licensed.
 
 === Documentation
 

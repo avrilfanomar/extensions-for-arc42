@@ -1,0 +1,29 @@
+<!-- https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <id>io.github.avrilfanomar.arc42ext</id>
+    <name>Extensions for arc42</name>
+    <vendor url="https://github.com/avrilfanomar/extensions-for-arc42">Andrii Andriichuk</vendor>
+
+    <description><![CDATA[
+    <p>Browse and check arc42 architecture documents written in AsciiDoc that use the
+    <a href="https://github.com/avrilfanomar/extensions-for-arc42">extensions for arc42</a>:</p>
+    <ul>
+        <li><b>links</b>: typed links between elements such as decisions, requirements, inputs and stakeholder roles</li>
+        <li><b>triggers</b>: event-driven revisits of architecture decisions</li>
+    </ul>
+    <p>The <b>arc42</b> tool window lists the elements of each document by arc42 section or by kind. For each
+    element it shows the links written at it, the links into it, and its revisit subscriptions and history.
+    It reports violations of the links rules, follows <code>include::</code> directives, and updates as you type.</p>
+    <p>Independent project; not affiliated with or endorsed by arc42 or its creators.</p>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <resource-bundle>messages.Arc42Bundle</resource-bundle>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="arc42" anchor="right" icon="/icons/toolWindow.svg" doNotActivateOnStart="true"
+                    factoryClass="io.github.avrilfanomar.arc42ext.ide.toolwindow.Arc42ToolWindowFactory"/>
+        <iconMapper mappingFile="Arc42IconMappings.json"/>
+    </extensions>
+</idea-plugin>

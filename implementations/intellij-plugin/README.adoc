@@ -1,0 +1,82 @@
+= arc42ext IntelliJ plugin
+:toc:
+
+A non-normative implementation of the `links` and `triggers` extensions for IntelliJ-based IDEs, for documents written in their AsciiDoc binding. It shows the elements of an arc42 document and how they are linked, next to the text you are editing. The SPECs define the semantics; the conformance cases under `extensions/*/conformance/` are what it is tested against, like the link:../reference-checker/[reference checker].
+
+== Features
+
+* An *arc42* tool window lists every arc42 document of the project. Its elements are grouped by arc42 section or, with *Group by Kind*, by kind.
+* For each element it shows the links written at it (`owned-by → sh-architect`) and the links into it (`← owned-by adr-007`). Inverse relations are derived and never written. For a `triggers` subscriber it also shows the baseline, the subscriptions and the revisits, open (with the due date) or closed (with the outcome).
+* Checks `links` rules L1 and L3–L8 (L2 concerns history and cannot be checked from one revision). Problems are listed at the top of each document. Problems with the notation itself (a table with the wrong columns, an `include::` that cannot be found) are reported as rule `B1`.
+* Double-click or Enter opens the element, the other end of a link, or the location of a problem. An external link target, such as an `https:` URI, opens in the browser. Type to search the tree.
+* Follows `include::` directives and ignores comments, listing and literal blocks, and `ifdef::arc42help[]` blocks.
+* Updates as you type, including unsaved changes, and when AsciiDoc files are created, deleted, renamed or moved.
+* Read-only: the document stays the record of truth.
+* Needs no AsciiDoc plugin and no indexes, so it also works while the IDE is indexing.
+
+Not yet supported: the `triggers` rules T1–T17 and the status at a date (due, missing and overdue revisits). The reference checker's `validate`, `status` and `serve` commands cover these.
+
+=== Which files are arc42 documents
+
+A document is often split into a root file that includes one file per chapter. The plugin reads every `.adoc` and `.asciidoc` file in the project content (excluded folders are skipped). Each one that no other file includes is a candidate root. A candidate is an arc42 document when its text, with includes followed, declares one of the extensions in §1:
+
+----
+Extensions used: links v0.1.0, triggers v0.1.0
+----
+
+== Compatibility
+
+IntelliJ IDEA, PyCharm, WebStorm and the other IntelliJ-based IDEs, version 2025.3 (build 253) and later. The plugin depends only on the platform module (`com.intellij.modules.platform`).
+
+== Installation
+
+Build the plugin (see <<Building>>), then in the IDE choose *Settings | Plugins | ⚙ | Install Plugin from Disk…* and select `build/distributions/arc42ext-intellij-0.1.0.zip`.
+
+== Usage
+
+Open a project that contains an arc42 document, then open *View | Tool Windows | arc42*. The tool window sits on the right edge.
+
+The toolbar holds *Refresh*, *Group by Kind*, *Expand All* and *Collapse All*. Refreshing by hand is rarely needed. The tree keeps its expanded and selected nodes when it updates.
+
+[[Building]]
+== Building
+
+JDK 21 is needed. If none is installed, Gradle downloads one.
+
+[source,bash]
+----
+cd implementations/intellij-plugin
+./gradlew buildPlugin   # build/distributions/arc42ext-intellij-0.1.0.zip
+./gradlew runIde        # starts a sandbox IDE with the plugin installed
+----
+
+By default the build downloads IntelliJ IDEA 2025.3, several GB, to compile and test against. To use an installed IDE of the same branch (253) instead, pass its installation directory:
+
+[source,bash]
+----
+./gradlew -PplatformLocalPath=/path/to/pycharm buildPlugin
+----
+
+== Layout
+
+The packages under `src/main/kotlin/io/github/avrilfanomar/arc42ext/` mirror the separation of concept and binding:
+
+* `model`: the concept. Elements, links, the link graph with its derived inverse relations, and the rules L1 and L3–L8. It knows nothing about AsciiDoc or the IDE.
+* `asciidoc`: reads the AsciiDoc notation into the model, like the reference checker's `binding_asciidoc.py`, and finds the documents among a set of files. It does not know the IDE.
+* `ide`: the project service that reads the documents in the background, and the tool window.
+
+`LayeringTest` enforces the separation.
+
+== Testing
+
+[source,bash]
+----
+cd implementations/intellij-plugin
+./gradlew test
+----
+
+The suite runs every conformance case for the rules the plugin checks and requires that together they cover every one of L1 and L3–L8. It also checks that both examples are clean, and that every document under `extensions/`, cut off at the end or in the middle of any line, reads without an error, as happens while you type. Tests in a headless IDE check how documents split into chapters are found, that unsaved changes are read, and what the tool window shows.
+
+== License
+
+Apache License 2.0. See link:LICENSE[LICENSE].
