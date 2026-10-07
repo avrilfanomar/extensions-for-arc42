@@ -2,7 +2,7 @@
 <idea-plugin>
     <id>io.github.avrilfanomar.arc42ext</id>
     <name>Extensions for arc42</name>
-    <vendor url="https://github.com/avrilfanomar/extensions-for-arc42">Andrii Andriichuk</vendor>
+    <vendor email="andrey000mar@gmail.com" url="https://github.com/avrilfanomar/extensions-for-arc42">Andrii Andriichuk</vendor>
 
     <description><![CDATA[
     <p>Browse and check arc42 architecture documents written in AsciiDoc that use the
@@ -14,6 +14,18 @@
     <p>The <b>arc42</b> tool window lists the elements of each document by arc42 section or by kind. For each
     element it shows the links written at it, the links into it, and its revisit subscriptions and history.
     It reports violations of the links rules, follows <code>include::</code> directives, and updates as you type.</p>
+
+    <h3>Key Features</h3>
+    <ul>
+        <li><b>Real-time validation</b> of 8 link rules (L1, L3-L8, B1) as you edit</li>
+        <li><b>Dual view modes</b>: group elements by arc42 section or by element kind</li>
+        <li><b>Live updates</b>: automatically refreshes as you edit AsciiDoc files (300ms debounce)</li>
+        <li><b>Navigation support</b>: double-click or press Enter to jump to elements in source</li>
+        <li><b>Read-only interface</b>: your documents remain the single source of truth</li>
+        <li><b>Works during indexing</b>: no need to wait for IDE to finish indexing</li>
+        <li><b>Include directive support</b>: follows <code>include::</code> across multiple files</li>
+    </ul>
+
     <p>Independent project; not affiliated with or endorsed by arc42 or its creators.</p>
     ]]></description>
 

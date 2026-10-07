@@ -56,3 +56,45 @@ jobs:
           cd implementations/reference-checker
           arc42ext validate ../../extensions/links/EN/example.adoc --date 2026-10-04
           arc42ext validate ../../extensions/triggers/EN/example.adoc --date 2026-10-04
+
+  intellij-plugin-checks:
+    name: IntelliJ Plugin Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x implementations/intellij-plugin/gradlew
+
+      - name: Verify Plugin Structure
+        run: |
+          cd implementations/intellij-plugin
+          ./gradlew verifyPluginStructure
+
+      - name: Verify Plugin Configuration
+        run: |
+          cd implementations/intellij-plugin
+          ./gradlew verifyPluginProjectConfiguration
+
+      - name: Run Tests
+        run: |
+          cd implementations/intellij-plugin
+          ./gradlew test
+
+      - name: Build Plugin
+        run: |
+          cd implementations/intellij-plugin
+          ./gradlew buildPlugin
+
+      - name: Verify Plugin Compatibility
+        run: |
+          cd implementations/intellij-plugin
+          ./gradlew verifyPlugin

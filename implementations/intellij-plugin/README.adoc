@@ -30,6 +30,17 @@ IntelliJ IDEA, PyCharm, WebStorm and the other IntelliJ-based IDEs, version 2025
 
 == Installation
 
+=== From JetBrains Marketplace (Recommended)
+
+Once published, the plugin will be available at https://plugins.jetbrains.com/
+
+1. Open *Settings | Plugins*
+2. Search for "Extensions for arc42"
+3. Click *Install*
+4. Restart the IDE
+
+=== Manual Installation (Development)
+
 Build the plugin (see <<Building>>), then in the IDE choose *Settings | Plugins | ⚙ | Install Plugin from Disk…* and select `build/distributions/arc42ext-intellij-0.1.0.zip`.
 
 == Usage

@@ -1,0 +1,14 @@
+<!-- Development only: captures the Marketplace screenshots -> ../../../../screenshots/README.md -->
+<idea-plugin>
+    <id>io.github.avrilfanomar.arc42ext.screenshots</id>
+    <name>Extensions for arc42: Screenshot Driver</name>
+    <vendor url="https://github.com/avrilfanomar/extensions-for-arc42">Andrii Andriichuk</vendor>
+    <description>Opens an arc42 document, captures the arc42 tool window in several states, and exits the IDE.</description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>io.github.avrilfanomar.arc42ext</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <postStartupActivity implementation="io.github.avrilfanomar.arc42ext.screenshots.ScreenshotDriver"/>
+    </extensions>
+</idea-plugin>
