@@ -1,15 +1,29 @@
 # Changelog
 
 All notable changes to the Extensions for arc42 IntelliJ plugin will be documented in this file.
-
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+### Limitations
+
 ## [0.1.0] - 2026-10-06
 
 ### Added
+
 - Initial release
 - arc42 tool window for browsing architecture documents written in AsciiDoc
 - Support for links extension: typed links between elements (decisions, requirements, inputs, stakeholder roles)
@@ -24,9 +38,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Works during IDE indexing (DumbAware service)
 
 ### Limitations
+
 - Triggers rules T1-T17 validation not yet implemented
 - Historical status view for revisits not yet supported
 - Baseline management UI not available
 
 [Unreleased]: https://github.com/avrilfanomar/extensions-for-arc42/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/avrilfanomar/extensions-for-arc42/releases/tag/v0.1.0
+[0.1.0]: https://github.com/avrilfanomar/extensions-for-arc42/commits/v0.1.0
